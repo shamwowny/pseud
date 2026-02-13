@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2026 ICCA Championship Map</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://d3js.org/topojson.v3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -583,6 +583,95 @@ function selectQF(idx) {
   renderDetail();
 }
 
+// ─── COLLISION SPREADING ───
+// Lightly nudge overlapping dots apart - returns offset positions
+function spreadDots(dots, minDist) {
+  const positions = dots.map(d => ({...d, sx: d.x, sy: d.y}));
+  for (let iter = 0; iter < 12; iter++) {
+    let moved = false;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const dx = positions[j].sx - positions[i].sx;
+        const dy = positions[j].sy - positions[i].sy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist) {
+          const overlap = (minDist - dist) / 2;
+          if (dist > 0) {
+            const nx = dx / dist, ny = dy / dist;
+            positions[i].sx -= nx * overlap * 0.5;
+            positions[i].sy -= ny * overlap * 0.5;
+            positions[j].sx += nx * overlap * 0.5;
+            positions[j].sy += ny * overlap * 0.5;
+          } else {
+            const angle = (i * 2.399) + j;
+            positions[i].sx -= Math.cos(angle) * minDist * 0.3;
+            positions[i].sy -= Math.sin(angle) * minDist * 0.3;
+            positions[j].sx += Math.cos(angle) * minDist * 0.3;
+            positions[j].sy += Math.sin(angle) * minDist * 0.3;
+          }
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  return positions;
+}
+
+// Apply zoom-based spreading to all school dots in a <g> group
+function applyZoomSpread(g, k) {
+  // Only start spreading when zoomed past 6x; full spread by ~14x
+  const spreadFactor = Math.max(0, Math.min(1, (k - 6) / 8));
+  if (spreadFactor === 0) {
+    // Reset all dots to original positions
+    g.selectAll(".school-dot").each(function() {
+      const el = d3.select(this);
+      el.attr("cx", el.attr("data-ox")).attr("cy", el.attr("data-oy"));
+    });
+    g.selectAll(".school-glow").each(function() {
+      const el = d3.select(this);
+      el.attr("cx", el.attr("data-ox")).attr("cy", el.attr("data-oy"));
+    });
+    return;
+  }
+
+  // Collect current dot positions and spread
+  const dots = [];
+  g.selectAll(".school-dot").each(function() {
+    const el = d3.select(this);
+    dots.push({ el, ox: +el.attr("data-ox"), oy: +el.attr("data-oy") });
+  });
+
+  // minDist scales with zoom: at low zoom just side-by-side (4px), at high zoom more space
+  const minDist = 0.5 + spreadFactor * 0.5;
+  const spread = spreadDots(dots.map(d => ({x: d.ox, y: d.oy})), minDist);
+
+  dots.forEach((d, i) => {
+    const nx = d.ox + (spread[i].sx - spread[i].x) * spreadFactor;
+    const ny = d.oy + (spread[i].sy - spread[i].y) * spreadFactor;
+    d.el.attr("cx", nx).attr("cy", ny);
+  });
+
+  // Match glows to their dots (same index order)
+  const glows = [];
+  g.selectAll(".school-glow").each(function() { glows.push(d3.select(this)); });
+  let gi = 0;
+  dots.forEach((d, i) => {
+    // Find matching glow by original position
+    while (gi < glows.length) {
+      const glow = glows[gi];
+      if (+glow.attr("data-ox") === d.ox && +glow.attr("data-oy") === d.oy) {
+        const nx = d.ox + (spread[i].sx - spread[i].x) * spreadFactor;
+        const ny = d.oy + (spread[i].sy - spread[i].y) * spreadFactor;
+        glow.attr("cx", nx).attr("cy", ny);
+        gi++;
+        break;
+      }
+      gi++;
+    }
+  });
+}
+
 // ─── MAP RENDERING ───
 let currentZoom = null; // store zoom state to persist across re-renders
 
@@ -598,28 +687,31 @@ function renderMap() {
 
   // Set up D3 zoom
   const zoom = d3.zoom()
-    .scaleExtent([1, 12])
+    .scaleExtent([1, 24])
     .on("zoom", (event) => {
       g.attr("transform", event.transform);
       currentZoom = event.transform;
-      // Scale dot sizes inversely so they don't become huge
       const k = event.transform.k;
+      const mob = isMobile();
+      const dotScale = mob ? Math.pow(k, 0.45) : Math.sqrt(k);
       g.selectAll(".school-dot").attr("r", function() {
         const base = +d3.select(this).attr("data-base-r");
-        return base / Math.sqrt(k);
+        return base / dotScale;
       });
       g.selectAll(".school-glow").attr("r", function() {
         const base = +d3.select(this).attr("data-base-r");
-        return base / Math.sqrt(k);
+        return base / dotScale;
       });
       g.selectAll(".venue-marker").attr("stroke-width", function() {
         const base = +d3.select(this).attr("data-base-sw") || 1.5;
-        return base / Math.sqrt(k);
+        return base / dotScale;
       });
       g.selectAll(".state-path").attr("stroke-width", function() {
         const base = +d3.select(this).attr("data-base-sw") || 0.6;
         return base / k;
       });
+      // Dynamically spread overlapping dots when zoomed in
+      applyZoomSpread(g, k);
     });
 
   svg.call(zoom);
@@ -668,10 +760,12 @@ function renderMap() {
   // Apply current zoom scale to elements if zoomed
   if (currentZoom && currentZoom.k !== 1) {
     const k = currentZoom.k;
-    g.selectAll(".school-dot").attr("r", function() { return (+d3.select(this).attr("data-base-r")) / Math.sqrt(k); });
-    g.selectAll(".school-glow").attr("r", function() { return (+d3.select(this).attr("data-base-r")) / Math.sqrt(k); });
+    const mob = isMobile();
+    const dotScale = mob ? Math.pow(k, 0.45) : Math.sqrt(k);
+    g.selectAll(".school-dot").attr("r", function() { return (+d3.select(this).attr("data-base-r")) / dotScale; });
+    g.selectAll(".school-glow").attr("r", function() { return (+d3.select(this).attr("data-base-r")) / dotScale; });
     g.selectAll(".state-path").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")) / k; });
-    g.selectAll(".venue-marker").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")) / Math.sqrt(k); });
+    g.selectAll(".venue-marker").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")) / dotScale; });
   }
 }
 
@@ -879,6 +973,8 @@ function renderUSMap(svg, w, h) {
   const mapRect = document.querySelector(".map-area").getBoundingClientRect();
   const hlSchools = getHighlightedSchools();
 
+  // Collect all US school dot data
+  const usDots = [];
   for (const [regionName, data] of Object.entries(REGIONS)) {
     if (regionName === "United Kingdom") continue;
     const isActive = !selectedRegion || selectedRegion === regionName;
@@ -888,43 +984,44 @@ function renderUSMap(svg, w, h) {
       const projected = usProjection([c[1], c[0]]);
       if (!projected) continue;
       const [x, y] = projected;
-
-      // Determine if this school is highlighted or dimmed by QF selection
       const isInQF = hlSchools ? hlSchools.has(school) : null;
       const isDimmedByQF = hlSchools && !isInQF;
       const isBrightByQF = hlSchools && isInQF;
+      usDots.push({ x, y, school, regionName, data, isActive, isDimmedByQF, isBrightByQF });
+    }
+  }
+
+  // Render dots at true geographic positions (spreading applied dynamically on zoom)
+  for (const pt of usDots) {
+    const { x, y, school, regionName, data, isActive, isDimmedByQF, isBrightByQF } = pt;
 
       const mob = isMobile();
-      const dotRadius = isBrightByQF ? (mob ? 7 : 6) : (isActive && selectedRegion ? (mob ? 5.5 : 4.5) : (mob ? 4 : 3));
+      const dotRadius = isBrightByQF ? 6 : (isActive && selectedRegion ? 4.5 : 3);
       const dotOpacity = isDimmedByQF ? 0.08 : (isActive ? 0.9 : 0.12);
 
       if (isActive && selectedRegion && !isDimmedByQF) {
-        svg.append("circle").attr("cx", x).attr("cy", y).attr("r", isBrightByQF ? (mob ? 16 : 14) : (mob ? 12 : 10))
-          .attr("data-base-r", isBrightByQF ? (mob ? 16 : 14) : (mob ? 12 : 10))
+        svg.append("circle").attr("cx", x).attr("cy", y).attr("r", isBrightByQF ? 14 : 10)
+          .attr("data-base-r", isBrightByQF ? 14 : 10)
+          .attr("data-ox", x).attr("data-oy", y)
           .attr("fill", data.color + (isBrightByQF ? "25" : "15")).attr("class", "school-glow");
-      }
-
-      // Invisible larger hit area for touch on mobile
-      if (mob) {
-        svg.append("circle").attr("cx", x).attr("cy", y).attr("r", 14)
-          .attr("fill", "transparent").attr("class", "school-hit")
-          .style("cursor", "pointer");
       }
 
       // Visible dot
       const dot = svg.append("circle").attr("cx", x).attr("cy", y)
         .attr("r", dotRadius)
         .attr("data-base-r", dotRadius)
+        .attr("data-ox", x).attr("data-oy", y)
         .attr("fill", data.color)
         .attr("opacity", dotOpacity)
         .attr("class", "school-dot")
         .style("cursor", "pointer");
 
-      // Shared hover handlers for both the dot and the hit area
+      // Shared hover handlers
       const showTip = function(e) {
         const ev = e.touches ? e.touches[0] : e;
         const k = currentZoom ? currentZoom.k : 1;
-        dot.attr("r", (mob ? 8 : 7) / Math.sqrt(k));
+        const ds = mob ? Math.pow(k, 0.45) : Math.sqrt(k);
+        dot.attr("r", (mob ? 8 : 7) / ds);
         ttSchool.textContent = school;
         ttRegion.textContent = regionName;
         ttRegion.style.color = data.accent;
@@ -951,19 +1048,15 @@ function renderUSMap(svg, w, h) {
       };
       const hideTip = function() {
         const k = currentZoom ? currentZoom.k : 1;
-        dot.attr("r", dotRadius / Math.sqrt(k));
+        const ds = mob ? Math.pow(k, 0.45) : Math.sqrt(k);
+        dot.attr("r", dotRadius / ds);
         tooltip.classList.remove("visible");
       };
 
       dot.on("mouseenter", showTip).on("mousemove", moveTip).on("mouseleave", hideTip);
       if (mob) {
-        // Also bind to the hit area (it's the previous sibling)
-        const hitArea = d3.select(dot.node().previousElementSibling);
-        if (hitArea.classed("school-hit")) {
-          hitArea.on("touchstart", showTip, {passive: true}).on("touchend", hideTip);
-        }
+        dot.on("touchstart", showTip, {passive: true}).on("touchend", hideTip);
       }
-    }
   }
 
   // Draw QF venue markers when a region is selected
@@ -977,9 +1070,9 @@ function renderUSMap(svg, w, h) {
       if (sp) {
         const [sx, sy] = sp;
         // Draw a star
-        const starSize = isMobile() ? 6 : 10;
+        const starSize = isMobile() ? 3 : 10;
         const star = d3.symbol().type(d3.symbolStar).size(starSize * 22);
-        venueGroup.append("circle").attr("cx", sx).attr("cy", sy).attr("r", isMobile() ? 10 : 16).attr("fill", rd.color + "20").attr("stroke", rd.color + "40").attr("stroke-width", 1);
+        venueGroup.append("circle").attr("cx", sx).attr("cy", sy).attr("r", isMobile() ? 6 : 16).attr("fill", rd.color + "20").attr("stroke", rd.color + "40").attr("stroke-width", isMobile() ? 0.5 : 1);
         venueGroup.append("path").attr("d", star).attr("transform", `translate(${sx},${sy})`)
           .attr("fill", "#FFD700").attr("stroke", "#FFD700").attr("stroke-width", 0.5).attr("opacity", 0.9)
           .attr("class", "venue-marker")
@@ -1005,18 +1098,19 @@ function renderUSMap(svg, w, h) {
       const projected = usProjection([qf.lng, qf.lat]);
       if (!projected) return;
       const [vx, vy] = projected;
-      const s = isMobile() ? 4.5 : 7;
+      const s = isMobile() ? 3 : 7;
       const isHighlighted = highlightedQF === i;
 
       // Outer glow
-      const glowR = isHighlighted ? (isMobile() ? 11 : 18) : (isMobile() ? 8 : 14);
+      const glowR = isHighlighted ? (isMobile() ? 6 : 18) : (isMobile() ? 5 : 14);
       venueGroup.append("circle").attr("cx", vx).attr("cy", vy).attr("r", glowR)
         .attr("fill", rd.color + (isHighlighted ? "30" : "15")).attr("stroke", isHighlighted ? rd.color + "50" : "none").attr("stroke-width", isHighlighted ? 1.5 : 0);
 
       // Diamond shape
       const diamond = `M${vx},${vy - s} L${vx + s},${vy} L${vx},${vy + s} L${vx - s},${vy} Z`;
+      const dSW = isMobile() ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
       venueGroup.append("path").attr("d", diamond)
-        .attr("fill", isHighlighted ? rd.accent : rd.color).attr("stroke", "#fff").attr("stroke-width", isHighlighted ? 2.5 : 1.5).attr("opacity", 0.95)
+        .attr("fill", isHighlighted ? rd.accent : rd.color).attr("stroke", "#fff").attr("stroke-width", dSW).attr("opacity", 0.95)
         .attr("class", "venue-marker")
         .style("cursor", "pointer")
         .on("mouseenter", function(e) {
@@ -1048,7 +1142,7 @@ function renderUSMap(svg, w, h) {
       // QF number label
       venueGroup.append("text").attr("x", vx).attr("y", vy + 0.5)
         .attr("text-anchor", "middle").attr("dominant-baseline", "central")
-        .attr("fill", "#fff").attr("font-size", isMobile() ? "6px" : "8px").attr("font-weight", "700")
+        .attr("fill", "#fff").attr("font-size", isMobile() ? "4px" : "8px").attr("font-weight", "700")
         .attr("font-family", "'Space Mono', monospace")
         .attr("pointer-events", "none")
         .text(i + 1);
@@ -1086,13 +1180,13 @@ function renderUKMap(svg, w, h) {
   const mapRect = document.querySelector(".map-area").getBoundingClientRect();
   const hlSchools = getHighlightedSchools();
 
+  // Collect and render UK dots at geographic positions (spreading on zoom)
   for (const school of data.schools) {
     const c = SCHOOL_COORDS[school];
     if (!c) continue;
     const projected = ukProjection([c[1], c[0]]);
     if (!projected) continue;
     const [x, y] = projected;
-
     const isInQF = hlSchools ? hlSchools.has(school) : null;
     const isDimmedByQF = hlSchools && !isInQF;
     const isBrightByQF = hlSchools && isInQF;
@@ -1103,15 +1197,18 @@ function renderUKMap(svg, w, h) {
     if (!isDimmedByQF) {
       svg.append("circle").attr("cx", x).attr("cy", y).attr("r", isBrightByQF ? 14 : 10)
         .attr("data-base-r", isBrightByQF ? 14 : 10)
+        .attr("data-ox", x).attr("data-oy", y)
         .attr("fill", data.color + (isBrightByQF ? "25" : "18")).attr("class", "school-glow");
     }
-    svg.append("circle").attr("cx", x).attr("cy", y).attr("r", dotR)
+    const dot = svg.append("circle").attr("cx", x).attr("cy", y).attr("r", dotR)
       .attr("data-base-r", dotR)
+      .attr("data-ox", x).attr("data-oy", y)
       .attr("fill", data.color).attr("opacity", dotOp).attr("class", "school-dot")
       .style("cursor", "pointer")
       .on("mouseenter", function(e) {
         const k = currentZoom ? currentZoom.k : 1;
-        d3.select(this).attr("r", 8 / Math.sqrt(k));
+        const ds = isMobile() ? Math.pow(k, 0.45) : Math.sqrt(k);
+        d3.select(this).attr("r", 8 / ds);
         ttSchool.textContent = school;
         ttRegion.textContent = "United Kingdom";
         ttRegion.style.color = data.accent;
@@ -1137,7 +1234,8 @@ function renderUKMap(svg, w, h) {
       })
       .on("mouseleave", function() {
         const k = currentZoom ? currentZoom.k : 1;
-        d3.select(this).attr("r", dotR / Math.sqrt(k));
+        const ds = isMobile() ? Math.pow(k, 0.45) : Math.sqrt(k);
+        d3.select(this).attr("r", dotR / ds);
         tooltip.classList.remove("visible");
       });
   }
@@ -1150,8 +1248,8 @@ function renderUKMap(svg, w, h) {
     const sp = ukProjection([data.semifinal.lng, data.semifinal.lat]);
     if (sp) {
       const [sx, sy] = sp;
-      const star = d3.symbol().type(d3.symbolStar).size(isMobile() ? 120 : 220);
-      venueGroup.append("circle").attr("cx", sx).attr("cy", sy).attr("r", isMobile() ? 10 : 16).attr("fill", data.color + "20").attr("stroke", data.color + "40").attr("stroke-width", 1);
+      const star = d3.symbol().type(d3.symbolStar).size(isMobile() ? 66 : 220);
+      venueGroup.append("circle").attr("cx", sx).attr("cy", sy).attr("r", isMobile() ? 6 : 16).attr("fill", data.color + "20").attr("stroke", data.color + "40").attr("stroke-width", isMobile() ? 0.5 : 1);
       venueGroup.append("path").attr("d", star).attr("transform", `translate(${sx},${sy})`)
         .attr("fill", "#FFD700").attr("stroke", "#FFD700").attr("stroke-width", 0.5).attr("opacity", 0.9)
         .attr("class", "venue-marker")
@@ -1175,15 +1273,16 @@ function renderUKMap(svg, w, h) {
     const projected = ukProjection([qf.lng, qf.lat]);
     if (!projected) return;
     const [vx, vy] = projected;
-    const s = isMobile() ? 5 : 8;
+    const s = isMobile() ? 3.5 : 8;
     const isHighlighted = highlightedQF === i;
 
-    const ukGlowR = isHighlighted ? (isMobile() ? 12 : 20) : (isMobile() ? 9 : 16);
+    const ukGlowR = isHighlighted ? (isMobile() ? 6 : 20) : (isMobile() ? 5 : 16);
     venueGroup.append("circle").attr("cx", vx).attr("cy", vy).attr("r", ukGlowR)
       .attr("fill", data.color + (isHighlighted ? "30" : "15")).attr("stroke", isHighlighted ? data.color + "50" : "none").attr("stroke-width", isHighlighted ? 1.5 : 0);
     const diamond = `M${vx},${vy - s} L${vx + s},${vy} L${vx},${vy + s} L${vx - s},${vy} Z`;
+    const ukDSW = isMobile() ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
     venueGroup.append("path").attr("d", diamond)
-      .attr("fill", isHighlighted ? data.accent : data.color).attr("stroke", "#fff").attr("stroke-width", isHighlighted ? 2.5 : 1.5).attr("opacity", 0.95)
+      .attr("fill", isHighlighted ? data.accent : data.color).attr("stroke", "#fff").attr("stroke-width", ukDSW).attr("opacity", 0.95)
       .attr("class", "venue-marker")
       .style("cursor", "pointer")
       .on("mouseenter", function(e) {
