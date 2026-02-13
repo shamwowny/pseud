@@ -169,6 +169,18 @@
   .tooltip-groups { font-size: 10px; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); color: #aaa; line-height: 1.5; }
 
   .sheet-handle { display: none; }
+
+  .editor-link {
+    display: block; text-align: center; padding: 10px 20px; border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.05));
+    border: 1px solid rgba(255,215,0,0.2); color: #FFD700; font-size: 13px; font-weight: 600;
+    text-decoration: none; transition: all 0.25s; letter-spacing: 0.3px;
+  }
+  .editor-link:hover {
+    background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,215,0,0.1));
+    border-color: rgba(255,215,0,0.4); transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(255,215,0,0.1);
+  }
   .sheet-handle-bar { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.25); margin-bottom: 8px; }
   .sheet-content { overflow-y: auto; height: 100%; padding: 20px 16px; }
 
@@ -326,6 +338,9 @@
     </div>
     <div class="region-list" id="region-list"></div>
     <div id="region-detail"></div>
+    <div style="padding: 16px 16px 24px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+      <a href="icca-editor.html" class="editor-link">✦ Make your own!</a>
+    </div>
     </div>
   </div>
 
