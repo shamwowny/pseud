@@ -249,7 +249,7 @@
       box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
     }
     .sidebar.collapsed {
-      transform: translateY(calc(100% - 210px));
+      transform: translateY(calc(100% - 44px));
     }
     .sidebar.expanded {
       transform: translateY(0);
@@ -877,7 +877,7 @@ function closeVenuePopup() {
     const dy = e.touches[0].clientY - sheetStartY;
     const maxUp = 0;
     const sheetH = sidebar.offsetHeight;
-    const collapsedOffset = sheetH - 210;
+    const collapsedOffset = sheetH - 44;
     const newY = Math.max(maxUp, Math.min(collapsedOffset, sheetStartTranslate + dy));
     sidebar.style.transform = `translateY(${newY}px)`;
   }, { passive: true });
@@ -888,7 +888,7 @@ function closeVenuePopup() {
     sidebar.style.transition = "";
     const currentY = getSheetTranslateY();
     const sheetH = sidebar.offsetHeight;
-    const collapsedOffset = sheetH - 210;
+    const collapsedOffset = sheetH - 44;
     // Snap to closest state
     setSheetState(currentY > collapsedOffset * 0.4);
   });
