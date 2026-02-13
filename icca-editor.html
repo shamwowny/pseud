@@ -462,7 +462,7 @@ function rebuildSchools(regionName) {
 function addRegion() {
   showModal('New Region', `
     <div class="modal-label">Region Name</div>
-    <input class="modal-input" id="m-name" placeholder="e.g. Pacific Northwest" autofocus>
+    <input class="modal-input" id="m-name" placeholder="e.g. Canhandle" autofocus>
     <div class="modal-label">Color</div>
     <div style="display:flex;gap:8px;align-items:center">
       <input type="color" class="color-picker" id="m-color" value="#6C8EBF">
@@ -581,7 +581,7 @@ function addGroupPrompt() {
   }
   showModal('Add Group', `
     <div class="modal-label">Group Name</div>
-    <input class="modal-input" id="m-group" placeholder="e.g. YellowJackets" autofocus>
+    <input class="modal-input" id="m-group" placeholder="e.g. Midnight Ramblers" autofocus>
     <div class="modal-label">Assign to Quarterfinal</div>
     <select class="modal-input" id="m-target">${options}</select>
   `, () => {
