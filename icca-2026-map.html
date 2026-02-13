@@ -568,14 +568,6 @@ function selectRegion(name) {
   selectedQF = null;
   highlightedQF = null;
   renderAll();
-  // On mobile, expand sheet to show QF details when region selected, collapse when deselected
-  if (window.innerWidth <= 768) {
-    if (selectedRegion) {
-      window.expandSheet && window.expandSheet();
-    } else {
-      window.collapseSheet && window.collapseSheet();
-    }
-  }
 }
 
 function selectQF(idx) {
@@ -710,6 +702,12 @@ function renderMap() {
         const base = +d3.select(this).attr("data-base-sw") || 0.6;
         return base / k;
       });
+      // Scale venue marker groups (each has translate + scale)
+      g.selectAll(".venue-marker-g").each(function() {
+        const el = d3.select(this);
+        const tx = el.attr("data-tx"), ty = el.attr("data-ty");
+        el.attr("transform", `translate(${tx},${ty}) scale(${1/dotScale})`);
+      });
       // Dynamically spread overlapping dots when zoomed in
       applyZoomSpread(g, k);
     });
@@ -766,6 +764,11 @@ function renderMap() {
     g.selectAll(".school-glow").attr("r", function() { return (+d3.select(this).attr("data-base-r")) / dotScale; });
     g.selectAll(".state-path").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")) / k; });
     g.selectAll(".venue-marker").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")) / dotScale; });
+    g.selectAll(".venue-marker-g").each(function() {
+      const el = d3.select(this);
+      const tx = el.attr("data-tx"), ty = el.attr("data-ty");
+      el.attr("transform", `translate(${tx},${ty}) scale(${1/dotScale})`);
+    });
   }
 }
 
@@ -1063,17 +1066,18 @@ function renderUSMap(svg, w, h) {
   if (selectedRegion && selectedRegion !== "United Kingdom") {
     const rd = REGIONS[selectedRegion];
     const venueGroup = svg.append("g").attr("class", "venue-markers");
+    const mob = isMobile();
 
     // Semifinal marker (star shape)
     if (rd.semifinal.lat) {
       const sp = usProjection([rd.semifinal.lng, rd.semifinal.lat]);
       if (sp) {
         const [sx, sy] = sp;
-        // Draw a star
-        const starSize = isMobile() ? 3 : 10;
+        const sg = venueGroup.append("g").attr("class", "venue-marker-g").attr("data-tx", sx).attr("data-ty", sy).attr("transform", `translate(${sx},${sy})`);
+        const starSize = mob ? 3 : 10;
         const star = d3.symbol().type(d3.symbolStar).size(starSize * 22);
-        venueGroup.append("circle").attr("cx", sx).attr("cy", sy).attr("r", isMobile() ? 6 : 16).attr("fill", rd.color + "20").attr("stroke", rd.color + "40").attr("stroke-width", isMobile() ? 0.5 : 1);
-        venueGroup.append("path").attr("d", star).attr("transform", `translate(${sx},${sy})`)
+        sg.append("circle").attr("cx", 0).attr("cy", 0).attr("r", mob ? 6 : 16).attr("fill", rd.color + "20").attr("stroke", rd.color + "40").attr("stroke-width", mob ? 0.5 : 1);
+        sg.append("path").attr("d", star)
           .attr("fill", "#FFD700").attr("stroke", "#FFD700").attr("stroke-width", 0.5).attr("opacity", 0.9)
           .attr("class", "venue-marker")
           .style("cursor", "pointer")
@@ -1098,18 +1102,19 @@ function renderUSMap(svg, w, h) {
       const projected = usProjection([qf.lng, qf.lat]);
       if (!projected) return;
       const [vx, vy] = projected;
-      const s = isMobile() ? 3 : 7;
       const isHighlighted = highlightedQF === i;
+      const qg = venueGroup.append("g").attr("class", "venue-marker-g").attr("data-tx", vx).attr("data-ty", vy).attr("transform", `translate(${vx},${vy})`);
 
-      // Outer glow
-      const glowR = isHighlighted ? (isMobile() ? 6 : 18) : (isMobile() ? 5 : 14);
-      venueGroup.append("circle").attr("cx", vx).attr("cy", vy).attr("r", glowR)
+      // Outer glow (centered at 0,0 within group)
+      const glowR = isHighlighted ? (mob ? 6 : 18) : (mob ? 5 : 14);
+      qg.append("circle").attr("cx", 0).attr("cy", 0).attr("r", glowR)
         .attr("fill", rd.color + (isHighlighted ? "30" : "15")).attr("stroke", isHighlighted ? rd.color + "50" : "none").attr("stroke-width", isHighlighted ? 1.5 : 0);
 
-      // Diamond shape
-      const diamond = `M${vx},${vy - s} L${vx + s},${vy} L${vx},${vy + s} L${vx - s},${vy} Z`;
-      const dSW = isMobile() ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
-      venueGroup.append("path").attr("d", diamond)
+      // Diamond shape (centered at 0,0)
+      const s = mob ? 3 : 7;
+      const diamond = `M0,${-s} L${s},0 L0,${s} L${-s},0 Z`;
+      const dSW = mob ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
+      qg.append("path").attr("d", diamond)
         .attr("fill", isHighlighted ? rd.accent : rd.color).attr("stroke", "#fff").attr("stroke-width", dSW).attr("opacity", 0.95)
         .attr("class", "venue-marker")
         .style("cursor", "pointer")
@@ -1131,18 +1136,17 @@ function renderUSMap(svg, w, h) {
         })
         .on("click", function(e) {
           tooltip.classList.remove("visible");
-          // Toggle highlight
           highlightedQF = highlightedQF === i ? null : i;
           selectedQF = highlightedQF;
           showVenuePopup(e.clientX, e.clientY, qf, i, selectedRegion, rd);
           renderDetail();
-          renderMap(); // re-render to update dot brightness
+          renderMap();
         });
 
-      // QF number label
-      venueGroup.append("text").attr("x", vx).attr("y", vy + 0.5)
-        .attr("text-anchor", "middle").attr("dominant-baseline", "central")
-        .attr("fill", "#fff").attr("font-size", isMobile() ? "4px" : "8px").attr("font-weight", "700")
+      // QF number label (centered at 0,0)
+      qg.append("text").attr("x", 0).attr("y", 0)
+        .attr("text-anchor", "middle").attr("dy", "0.35em")
+        .attr("fill", "#fff").attr("font-size", (mob ? 4 : 8) + "px").attr("font-weight", "700")
         .attr("font-family", "'Space Mono', monospace")
         .attr("pointer-events", "none")
         .text(i + 1);
@@ -1248,9 +1252,11 @@ function renderUKMap(svg, w, h) {
     const sp = ukProjection([data.semifinal.lng, data.semifinal.lat]);
     if (sp) {
       const [sx, sy] = sp;
-      const star = d3.symbol().type(d3.symbolStar).size(isMobile() ? 66 : 220);
-      venueGroup.append("circle").attr("cx", sx).attr("cy", sy).attr("r", isMobile() ? 6 : 16).attr("fill", data.color + "20").attr("stroke", data.color + "40").attr("stroke-width", isMobile() ? 0.5 : 1);
-      venueGroup.append("path").attr("d", star).attr("transform", `translate(${sx},${sy})`)
+      const sg = venueGroup.append("g").attr("class", "venue-marker-g").attr("data-tx", sx).attr("data-ty", sy).attr("transform", `translate(${sx},${sy})`);
+      const mob = isMobile();
+      const star = d3.symbol().type(d3.symbolStar).size(mob ? 66 : 220);
+      sg.append("circle").attr("cx", 0).attr("cy", 0).attr("r", mob ? 6 : 16).attr("fill", data.color + "20").attr("stroke", data.color + "40").attr("stroke-width", mob ? 0.5 : 1);
+      sg.append("path").attr("d", star)
         .attr("fill", "#FFD700").attr("stroke", "#FFD700").attr("stroke-width", 0.5).attr("opacity", 0.9)
         .attr("class", "venue-marker")
         .on("mouseenter", function(e) {
@@ -1273,15 +1279,17 @@ function renderUKMap(svg, w, h) {
     const projected = ukProjection([qf.lng, qf.lat]);
     if (!projected) return;
     const [vx, vy] = projected;
-    const s = isMobile() ? 3.5 : 8;
+    const mob = isMobile();
     const isHighlighted = highlightedQF === i;
+    const qg = venueGroup.append("g").attr("class", "venue-marker-g").attr("data-tx", vx).attr("data-ty", vy).attr("transform", `translate(${vx},${vy})`);
 
-    const ukGlowR = isHighlighted ? (isMobile() ? 6 : 20) : (isMobile() ? 5 : 16);
-    venueGroup.append("circle").attr("cx", vx).attr("cy", vy).attr("r", ukGlowR)
+    const s = mob ? 3.5 : 8;
+    const ukGlowR = isHighlighted ? (mob ? 6 : 20) : (mob ? 5 : 16);
+    qg.append("circle").attr("cx", 0).attr("cy", 0).attr("r", ukGlowR)
       .attr("fill", data.color + (isHighlighted ? "30" : "15")).attr("stroke", isHighlighted ? data.color + "50" : "none").attr("stroke-width", isHighlighted ? 1.5 : 0);
-    const diamond = `M${vx},${vy - s} L${vx + s},${vy} L${vx},${vy + s} L${vx - s},${vy} Z`;
-    const ukDSW = isMobile() ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
-    venueGroup.append("path").attr("d", diamond)
+    const diamond = `M0,${-s} L${s},0 L0,${s} L${-s},0 Z`;
+    const ukDSW = mob ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
+    qg.append("path").attr("d", diamond)
       .attr("fill", isHighlighted ? data.accent : data.color).attr("stroke", "#fff").attr("stroke-width", ukDSW).attr("opacity", 0.95)
       .attr("class", "venue-marker")
       .style("cursor", "pointer")
@@ -1310,9 +1318,9 @@ function renderUKMap(svg, w, h) {
         renderMap();
       });
 
-    venueGroup.append("text").attr("x", vx).attr("y", vy + 0.5)
-      .attr("text-anchor", "middle").attr("dominant-baseline", "central")
-      .attr("fill", "#fff").attr("font-size", "9px").attr("font-weight", "700")
+    qg.append("text").attr("x", 0).attr("y", 0)
+      .attr("text-anchor", "middle").attr("dy", "0.35em")
+      .attr("fill", "#fff").attr("font-size", (mob ? 5 : 9) + "px").attr("font-weight", "700")
       .attr("font-family", "'Space Mono', monospace")
       .attr("pointer-events", "none")
       .text(i + 1);
