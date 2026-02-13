@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
 <title>ICCA Region Editor</title>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -231,6 +231,34 @@ body {
 .view-mode .qf-header { cursor: pointer; }
 .view-mode .qf-header[draggable] { -webkit-user-drag: none; }
 
+/* Venue popup */
+.venue-popup {
+  position: absolute; z-index: 40; background: rgba(10,10,15,0.94); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 16px 18px; backdrop-filter: blur(16px); max-width: 320px;
+  pointer-events: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  cursor: grab; user-select: none; animation: fadeIn 0.2s ease;
+}
+.venue-popup.dragging { cursor: grabbing; opacity: 0.92; }
+.venue-popup-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.venue-popup-title { font-size: 13px; font-weight: 700; }
+.venue-popup-meta { font-size: 11px; color: #888; margin-top: 2px; }
+.venue-popup-close { background: none; border: none; color: #666; font-size: 16px; cursor: pointer; padding: 0 2px; line-height: 1; }
+.venue-popup-close:hover { color: #fff; }
+.venue-popup-groups { display: flex; flex-wrap: wrap; gap: 4px; }
+.venue-popup-group { font-size: 11px; padding: 3px 10px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Map stats bar */
+.map-stats {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 15;
+  display: none; gap: 16px; align-items: center;
+  background: rgba(10,10,15,0.85); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 6px 18px; backdrop-filter: blur(12px);
+  font-family: 'Space Mono', monospace; font-size: 11px; color: #888;
+}
+.view-mode .map-stats { display: flex; }
+.map-stat-val { color: #aaa; font-weight: 700; margin-right: 3px; }
+
 /* Mobile disclaimer */
 .mobile-disclaimer {
   display: none; position: fixed; inset: 0; z-index: 200;
@@ -312,6 +340,8 @@ body {
     <div id="map-container"></div>
     <div class="lasso-rect" id="lasso-rect"></div>
     <div class="lasso-hint" id="lasso-hint">shift + drag to select schools</div>
+    <div class="map-stats" id="map-stats"></div>
+    <div id="venue-popup" class="venue-popup" style="display:none"></div>
     <div class="tooltip-box" id="tooltip">
       <div class="tt-school" id="tt-school"></div>
       <div class="tt-region" id="tt-region"></div>
@@ -1349,6 +1379,7 @@ function renderEditor() {
 function toggleViewMode() {
   viewMode = !viewMode;
   highlightedQF = null;
+  closeVenuePopup();
   const btn = document.getElementById('view-toggle');
   if (viewMode) {
     btn.textContent = '✎ Edit';
@@ -1359,6 +1390,7 @@ function toggleViewMode() {
     btn.classList.remove('primary');
     document.body.classList.remove('view-mode');
   }
+  updateMapStats();
   renderEditor(); renderMap();
 }
 
@@ -1366,7 +1398,142 @@ function toggleRegion(name) {
   openRegions[name] = !openRegions[name];
   selectedRegionName = openRegions[name] ? name : null;
   highlightedQF = null;
+  closeVenuePopup();
   renderEditor(); renderMap();
+}
+
+// ─── ZOOM-BASED DOT SPREADING ───
+function spreadDots(dots, minDist) {
+  const positions = dots.map(d => ({...d, sx: d.x, sy: d.y}));
+  for (let iter = 0; iter < 12; iter++) {
+    let moved = false;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const dx = positions[j].sx - positions[i].sx;
+        const dy = positions[j].sy - positions[i].sy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < minDist) {
+          const overlap = (minDist - dist) / 2;
+          if (dist > 0) {
+            const nx = dx/dist, ny = dy/dist;
+            positions[i].sx -= nx*overlap*0.5;
+            positions[i].sy -= ny*overlap*0.5;
+            positions[j].sx += nx*overlap*0.5;
+            positions[j].sy += ny*overlap*0.5;
+          } else {
+            const angle = (i*2.399) + j;
+            positions[i].sx -= Math.cos(angle)*minDist*0.3;
+            positions[i].sy -= Math.sin(angle)*minDist*0.3;
+            positions[j].sx += Math.cos(angle)*minDist*0.3;
+            positions[j].sy += Math.sin(angle)*minDist*0.3;
+          }
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  return positions;
+}
+
+function applyZoomSpread(g, k) {
+  const spreadFactor = Math.max(0, Math.min(1, (k - 6) / 8));
+  if (spreadFactor === 0) {
+    g.selectAll(".school-dot").each(function() {
+      const el = d3.select(this);
+      el.attr("cx", el.attr("data-ox")).attr("cy", el.attr("data-oy"));
+    });
+    g.selectAll(".school-glow").each(function() {
+      const el = d3.select(this);
+      el.attr("cx", el.attr("data-ox")).attr("cy", el.attr("data-oy"));
+    });
+    return;
+  }
+  const dots = [];
+  g.selectAll(".school-dot").each(function() {
+    const el = d3.select(this);
+    dots.push({ el, ox: +el.attr("data-ox"), oy: +el.attr("data-oy") });
+  });
+  const minDist = 0.5 + spreadFactor * 0.5;
+  const spread = spreadDots(dots.map(d => ({x: d.ox, y: d.oy})), minDist);
+  dots.forEach((d, i) => {
+    d.el.attr("cx", d.ox + (spread[i].sx - spread[i].x)*spreadFactor);
+    d.el.attr("cy", d.oy + (spread[i].sy - spread[i].y)*spreadFactor);
+  });
+  const glows = [];
+  g.selectAll(".school-glow").each(function() { glows.push(d3.select(this)); });
+  let gi = 0;
+  dots.forEach((d, i) => {
+    while (gi < glows.length) {
+      const glow = glows[gi];
+      if (+glow.attr("data-ox") === d.ox && +glow.attr("data-oy") === d.oy) {
+        glow.attr("cx", d.ox + (spread[i].sx - spread[i].x)*spreadFactor);
+        glow.attr("cy", d.oy + (spread[i].sy - spread[i].y)*spreadFactor);
+        gi++; break;
+      }
+      gi++;
+    }
+  });
+}
+
+// ─── VENUE POPUP ───
+function showVenuePopup(screenX, screenY, qf, qfIdx, regionName, regionData) {
+  const popup = document.getElementById('venue-popup');
+  const mapArea = document.querySelector('.map-area');
+  const rect = mapArea.getBoundingClientRect();
+  let left = screenX - rect.left + 14;
+  let top = screenY - rect.top - 10;
+  if (left + 330 > rect.width) left = screenX - rect.left - 340;
+  if (top + 250 > rect.height) top = rect.height - 260;
+  if (top < 10) top = 10;
+  if (left < 10) left = 10;
+  popup.style.display = 'block';
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  popup.innerHTML = `
+    <div style="width:32px;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 10px;"></div>
+    <div class="venue-popup-header">
+      <div>
+        <div class="venue-popup-title" style="color:${regionData.accent||regionData.color}">QF ${qfIdx+1} — ${qf.location||'No location'}</div>
+        <div class="venue-popup-meta">${qf.date||''} · ${regionName} · ${qf.groups.length} groups</div>
+      </div>
+      <button class="venue-popup-close" onclick="closeVenuePopup()">✕</button>
+    </div>
+    <div class="venue-popup-groups">
+      ${qf.groups.map(g => `<span class="venue-popup-group">${g}</span>`).join('')}
+    </div>`;
+}
+function closeVenuePopup() { document.getElementById('venue-popup').style.display = 'none'; }
+
+// Draggable venue popup
+(function() {
+  let isDragging = false, startX, startY, startLeft, startTop;
+  const popup = document.getElementById('venue-popup');
+  popup.addEventListener('mousedown', function(e) {
+    if (e.target.closest('.venue-popup-close')) return;
+    isDragging = true; popup.classList.add('dragging');
+    startX = e.clientX; startY = e.clientY;
+    startLeft = parseInt(popup.style.left)||0;
+    startTop = parseInt(popup.style.top)||0;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    popup.style.left = (startLeft + e.clientX - startX) + 'px';
+    popup.style.top = (startTop + e.clientY - startY) + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (isDragging) { isDragging = false; popup.classList.remove('dragging'); }
+  });
+})();
+
+// ─── MAP STATS BAR ───
+function updateMapStats() {
+  const el = document.getElementById('map-stats');
+  const st = totalStats();
+  el.innerHTML = `<span><span class="map-stat-val">${st.r}</span>Regions</span>`
+    + `<span><span class="map-stat-val">${st.g}</span>Groups</span>`
+    + `<span><span class="map-stat-val">${st.s}</span>Schools</span>`;
 }
 
 function toggleQF(rn, qi) {
@@ -1432,6 +1599,7 @@ function renderMap() {
       const el = d3.select(this);
       el.attr("transform", `translate(${el.attr("data-tx")},${el.attr("data-ty")}) scale(${1/dotScale})`);
     });
+    applyZoomSpread(g, k);
   });
   svg.call(zoom);
   if (currentZoom) svg.call(zoom.transform, currentZoom);
@@ -1540,8 +1708,10 @@ function renderMap() {
     if (!p) continue;
     const [x, y] = p;
     g.append("circle").attr("cx",x).attr("cy",y).attr("r",8).attr("data-base-r",8)
+      .attr("data-ox",x).attr("data-oy",y)
       .attr("fill","rgba(255,255,255,0.06)").attr("class","school-glow");
     g.append("circle").attr("cx",x).attr("cy",y).attr("r",3.5).attr("data-base-r",3.5)
+      .attr("data-ox",x).attr("data-oy",y)
       .attr("fill","#fff").attr("opacity",0.5).attr("class","school-dot").style("cursor","pointer")
       .on("click", function(e) { if (!e.shiftKey && !viewMode) { tooltip.classList.remove("visible"); showSchoolModal(school); } })
       .on("mouseenter", function(e) {
@@ -1591,9 +1761,11 @@ function renderMap() {
       if (isActive && selectedRegionName && !isDimmedByQF) {
         g.append("circle").attr("cx",x).attr("cy",y)
           .attr("r", isBrightByQF ? 14 : 10).attr("data-base-r", isBrightByQF ? 14 : 10)
+          .attr("data-ox",x).attr("data-oy",y)
           .attr("fill", rd.color + (isBrightByQF ? "25" : "15")).attr("class","school-glow");
       }
       g.append("circle").attr("cx",x).attr("cy",y).attr("r",dotR).attr("data-base-r",dotR)
+        .attr("data-ox",x).attr("data-oy",y)
         .attr("fill",rd.color).attr("opacity",dotOp).attr("class","school-dot").style("cursor","pointer")
         .on("click", function(e) { if (!e.shiftKey && !viewMode) { tooltip.classList.remove("visible"); showSchoolModal(school); } })
         .on("mouseenter", function(e) {
@@ -1623,17 +1795,20 @@ function renderMap() {
   // Venue markers for selected region (scaled to match 2026 map)
   if (selectedRegionName && data[selectedRegionName]) {
     const rd = data[selectedRegionName];
+
     const vg = g.append("g").attr("class","venue-markers");
 
     if (rd.semifinal && rd.semifinal.lat) {
       const sp = projection([rd.semifinal.lng, rd.semifinal.lat]);
       if (sp) {
-        const sg = vg.append("g").attr("class","venue-marker-g").attr("data-tx",sp[0]).attr("data-ty",sp[1]).attr("transform",`translate(${sp[0]},${sp[1]})`).style("cursor","pointer");
+        const sg = vg.append("g").attr("class","venue-marker-g").attr("data-tx",sp[0]).attr("data-ty",sp[1]).attr("transform",`translate(${sp[0]},${sp[1]})`);
         const star = d3.symbol().type(d3.symbolStar).size(100);
         sg.append("circle").attr("r",14).attr("fill",rd.color+"15").style("pointer-events","none");
-        sg.append("path").attr("d", star()).attr("fill","#FFD700").attr("stroke","#fff").attr("stroke-width",1.5).attr("opacity",0.9)
-          .attr("class","venue-marker").attr("data-base-sw",1.5);
-        sg.on("click", ((rn) => () => { if (!viewMode) { tooltip.classList.remove("visible"); showSFModal(rn); } })(selectedRegionName));
+        sg.append("path").attr("d", star()).attr("fill","#FFD700").attr("stroke","#fff").attr("stroke-width",1.5).attr("opacity",0.75)
+          .attr("class","venue-marker").attr("data-base-sw",1.5).style("pointer-events","none");
+        // Click catcher
+        sg.append("circle").attr("r",8).attr("fill","transparent").style("cursor","pointer")
+          .on("click", ((rn) => () => { if (!viewMode) { tooltip.classList.remove("visible"); showSFModal(rn); } })(selectedRegionName));
       }
     }
 
@@ -1642,19 +1817,21 @@ function renderMap() {
       const p = projection([qf.lng, qf.lat]);
       if (!p) return;
       const isHL = viewMode && highlightedQF === i;
-      const qg = vg.append("g").attr("class","venue-marker-g").attr("data-tx",p[0]).attr("data-ty",p[1]).attr("transform",`translate(${p[0]},${p[1]})`).style("cursor","pointer");
+      const qg = vg.append("g").attr("class","venue-marker-g").attr("data-tx",p[0]).attr("data-ty",p[1]).attr("transform",`translate(${p[0]},${p[1]})`);
       const s = 7;
       const glowR = isHL ? 18 : 14;
       qg.append("circle").attr("r",glowR)
         .attr("fill",rd.color+(isHL?"30":"15")).attr("stroke",isHL?rd.color+"50":"none").attr("stroke-width",isHL?1.5:0)
         .style("pointer-events","none");
       qg.append("path").attr("d",`M0,${-s} L${s},0 L0,${s} L${-s},0 Z`)
-        .attr("fill",isHL ? (rd.accent||rd.color) : rd.color).attr("stroke","#fff").attr("stroke-width",isHL?2.5:1.5).attr("opacity",0.95)
-        .attr("class","venue-marker").attr("data-base-sw",isHL?2.5:1.5);
+        .attr("fill",isHL ? (rd.accent||rd.color) : rd.color).attr("stroke","#fff").attr("stroke-width",isHL?2.5:1.5).attr("opacity",0.75)
+        .attr("class","venue-marker").attr("data-base-sw",isHL?2.5:1.5).style("pointer-events","none");
       qg.append("text").attr("x",0).attr("y",0).attr("dy","0.35em").attr("text-anchor","middle")
         .attr("fill","#fff").attr("font-size","8px").attr("font-weight","700").attr("font-family","'Space Mono',monospace")
         .attr("pointer-events","none").text(i+1);
-      qg.on("mouseenter", function(e) {
+      // Click catcher - slightly larger than diamond for easy clicking
+      const cc = qg.append("circle").attr("r",9).attr("fill","transparent").style("cursor","pointer");
+      cc.on("mouseenter", function(e) {
         ttSchool.textContent = `QF ${i+1} — ${qf.location||'No location'}`;
         ttRegion.textContent = `${qf.date||''} · ${qf.groups.length} groups${viewMode?' · click to highlight':''}`;
         ttRegion.style.color = rd.accent||rd.color;
@@ -1668,10 +1845,16 @@ function renderMap() {
       }).on("mouseleave", function() {
         tooltip.classList.remove("visible");
       });
-      qg.on("click", ((rn, idx) => () => {
+      cc.on("click", ((rn, idx) => (e) => {
         tooltip.classList.remove("visible");
         if (viewMode) {
           highlightedQF = highlightedQF === idx ? null : idx;
+          if (highlightedQF !== null) {
+            const qfData = data[rn].quarterfinals[idx];
+            showVenuePopup(e.clientX, e.clientY, qfData, idx, rn, data[rn]);
+          } else {
+            closeVenuePopup();
+          }
           renderMap();
         } else {
           showQFDetailModal(rn, idx);
@@ -1692,8 +1875,10 @@ function renderMap() {
       const el = d3.select(this);
       el.attr("transform", `translate(${el.attr("data-tx")},${el.attr("data-ty")}) scale(${1/dotScale})`);
     });
+    applyZoomSpread(g, k);
   }
 
+  updateMapStats();
   renderLegend();
 }
 
