@@ -1,2 +1,2 @@
 ### Welcome!
-I am writing some filler copy here.
+This is my project site/future blog? More soon!
