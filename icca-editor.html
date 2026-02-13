@@ -93,6 +93,9 @@ body {
   border-radius: 6px 6px 0 0; font-size: 11px; cursor: pointer; user-select: none;
 }
 .qf-header:hover { background: rgba(255,255,255,0.04); }
+.qf-header[draggable="true"] { cursor: grab; }
+.qf-header.dragging { opacity: 0.4; }
+.region-header.drag-over { background: rgba(255,215,0,0.08); outline: 1px dashed rgba(255,215,0,0.3); }
 .qf-label { font-family: 'Space Mono', monospace; font-weight: 600; font-size: 10px; }
 .qf-location { flex: 1; color: #888; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qf-count { font-family: 'Space Mono', monospace; font-size: 10px; color: #555; }
@@ -407,6 +410,7 @@ let data = deepClone(REGIONS);
 let unassigned = []; // groups not assigned to any QF
 let undoStack = [];
 let openRegions = {};
+let openQFs = {};
 let selectedRegionName = null;
 let currentZoom = null;
 
@@ -868,15 +872,27 @@ function onDropToQF(e, targetRn, targetQi) {
 }
 function onDropToPool(e) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
-  if (!dragData || dragType !== 'group' || dragData.rn === '__pool__') return;
-  saveUndo();
-  const src = data[dragData.rn].quarterfinals[dragData.qi].groups;
-  const idx = src.indexOf(dragData.g);
-  if (idx !== -1) src.splice(idx, 1);
-  rebuildSchools(dragData.rn);
-  unassigned.push(dragData.g);
-  dragData = null;
-  renderEditor(); renderMap();
+  if (!dragData) return;
+  if (dragType === 'qf') {
+    // Dissolve QF: move all its groups to pool, delete QF
+    saveUndo();
+    const qf = data[dragData.rn].quarterfinals[dragData.qi];
+    unassigned.push(...qf.groups);
+    data[dragData.rn].quarterfinals.splice(dragData.qi, 1);
+    rebuildSchools(dragData.rn);
+    dragData = null;
+    renderEditor(); renderMap();
+  } else if (dragType === 'group') {
+    if (dragData.rn === '__pool__') return;
+    saveUndo();
+    const src = data[dragData.rn].quarterfinals[dragData.qi].groups;
+    const idx = src.indexOf(dragData.g);
+    if (idx !== -1) src.splice(idx, 1);
+    rebuildSchools(dragData.rn);
+    unassigned.push(dragData.g);
+    dragData = null;
+    renderEditor(); renderMap();
+  }
 }
 function onDropToRegion(e, targetRn) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
@@ -998,21 +1014,28 @@ function renderEditor() {
     if (isOpen) {
       h += `<div class="region-body">`;
       rd.quarterfinals.forEach((qf, i) => {
+        const qfKey = rn + '|' + i;
+        const qfOpen = openQFs[qfKey] !== false; // default open
         h += `<div class="qf-block">`;
-        h += `<div class="qf-header" draggable="true" ondragstart="onDragStartQF(event,'${esc(rn)}',${i})" ondragend="onDragEnd(event)" onclick="editQF('${esc(rn)}',${i})">`;
+        h += `<div class="qf-header" draggable="true" ondragstart="onDragStartQF(event,'${esc(rn)}',${i})" ondragend="onDragEnd(event)" onclick="toggleQF('${esc(rn)}',${i})">`;
+        h += `<span class="region-chevron ${qfOpen?'open':''}" style="font-size:8px">▶</span>`;
         h += `<span class="qf-label" style="color:${rd.color}">QF${i+1}</span>`;
         h += `<span class="qf-location">${qf.location||'No location'}</span>`;
         h += `<span class="qf-count">${qf.groups.length}</span>`;
         h += `<div class="qf-actions">`;
+        h += `<button class="region-action-btn" onclick="event.stopPropagation();editQF('${esc(rn)}',${i})" title="Edit QF">✎</button>`;
         h += `<button class="region-action-btn del" onclick="event.stopPropagation();deleteQF('${esc(rn)}',${i})" title="Delete QF">✕</button>`;
         h += `</div></div>`;
-        h += `<div class="qf-groups" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToQF(event,'${esc(rn)}',${i})">`;
-        qf.groups.forEach(g => {
-          h += `<span class="group-tag" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
-          h += `${g}<span class="remove-group" onclick="event.stopPropagation();removeGroup('${esc(rn)}',${i},'${esc(g)}')" title="Remove">✕</span></span>`;
-        });
-        if (!qf.groups.length) h += `<span style="font-size:10px;color:#444;padding:4px">Drop groups here</span>`;
-        h += `</div></div>`;
+        if (qfOpen) {
+          h += `<div class="qf-groups" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToQF(event,'${esc(rn)}',${i})">`;
+          qf.groups.forEach(g => {
+            h += `<span class="group-tag" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
+            h += `${g}<span class="remove-group" onclick="event.stopPropagation();removeGroup('${esc(rn)}',${i},'${esc(g)}')" title="Remove">✕</span></span>`;
+          });
+          if (!qf.groups.length) h += `<span style="font-size:10px;color:#444;padding:4px">Drop groups here</span>`;
+          h += `</div>`;
+        }
+        h += `</div>`;
       });
       h += `</div>`;
     }
@@ -1029,7 +1052,7 @@ function renderEditor() {
       h += `${g}<span class="remove-group" onclick="event.stopPropagation();deletePoolGroup('${esc(g)}')" title="Delete permanently">✕</span></span>`;
     });
   } else {
-    h += `<span style="font-size:10px;color:#444;padding:4px">Drag groups here to unassign, or use + Group</span>`;
+    h += `<span style="font-size:10px;color:#444;padding:4px">Drag groups or entire QFs here to unassign</span>`;
   }
   h += `</div></div>`;
 
@@ -1040,6 +1063,12 @@ function toggleRegion(name) {
   openRegions[name] = !openRegions[name];
   selectedRegionName = openRegions[name] ? name : null;
   renderEditor(); renderMap();
+}
+
+function toggleQF(rn, qi) {
+  const key = rn + '|' + qi;
+  openQFs[key] = openQFs[key] === false ? true : false;
+  renderEditor();
 }
 
 // ─── MAP ───
@@ -1141,7 +1170,56 @@ function renderMap() {
   const ttRegion = document.getElementById("tt-region");
   const mapRect = document.querySelector(".map-area").getBoundingClientRect();
 
-  // Dots
+  // Collect all assigned schools for overlap check
+  const assignedSchools = new Set();
+  for (const rd of Object.values(data)) {
+    for (const s of rd.schools) assignedSchools.add(s);
+  }
+
+  // Unassigned group dots (rainbow gradient) — drawn first so assigned dots are on top
+  const unassignedSchools = new Set();
+  for (const g2 of unassigned) {
+    const school = findSchoolForGroup(g2);
+    if (school) unassignedSchools.add(school);
+  }
+  for (const school of unassignedSchools) {
+    if (assignedSchools.has(school)) continue; // skip if also assigned — assigned dot takes priority
+    const c = SCHOOL_COORDS[school];
+    if (!c) continue;
+    const p = projection([c[1], c[0]]);
+    if (!p) continue;
+    const [x, y] = p;
+    g.append("circle").attr("cx",x).attr("cy",y).attr("r",8).attr("data-base-r",8)
+      .attr("fill","url(#rainbow-dot)").attr("opacity",0.12).attr("class","school-glow");
+    g.append("circle").attr("cx",x).attr("cy",y).attr("r",3.5).attr("data-base-r",3.5)
+      .attr("fill","url(#rainbow-dot)").attr("opacity",0.7).attr("class","school-dot").style("cursor","pointer")
+      .on("mouseenter", function(e) {
+        const k = currentZoom ? currentZoom.k : 1;
+        d3.select(this).attr("r", 7/Math.sqrt(k));
+        ttSchool.textContent = school;
+        ttRegion.textContent = "Unassigned"; ttRegion.style.color = "#888";
+        const grps = SCHOOL_GROUPS[school];
+        const ttg = document.getElementById("tt-groups");
+        if (grps && grps.length) {
+          const poolGroups = grps.filter(gg => unassigned.includes(gg));
+          ttg.innerHTML = poolGroups.map(gg => `<span style="color:#ddd">${gg}</span>`).join(" · ");
+          ttg.style.display = poolGroups.length ? "block" : "none";
+        } else ttg.style.display="none";
+        tooltip.classList.add("visible");
+        tooltip.style.left = (e.clientX-mapRect.left+14)+"px";
+        tooltip.style.top = (e.clientY-mapRect.top-32)+"px";
+      })
+      .on("mousemove", function(e) {
+        tooltip.style.left = (e.clientX-mapRect.left+14)+"px";
+        tooltip.style.top = (e.clientY-mapRect.top-32)+"px";
+      })
+      .on("mouseleave", function() {
+        d3.select(this).attr("r", 3.5/Math.sqrt(currentZoom?currentZoom.k:1));
+        tooltip.classList.remove("visible");
+      });
+  }
+
+  // Assigned dots
   for (const [rn, rd] of Object.entries(data)) {
     const isActive = !selectedRegionName || selectedRegionName === rn;
     for (const school of rd.schools) {
@@ -1183,48 +1261,6 @@ function renderMap() {
     }
   }
 
-  // Unassigned group dots (rainbow gradient)
-  const unassignedSchools = new Set();
-  for (const g2 of unassigned) {
-    const school = findSchoolForGroup(g2);
-    if (school) unassignedSchools.add(school);
-  }
-  for (const school of unassignedSchools) {
-    const c = SCHOOL_COORDS[school];
-    if (!c) continue;
-    const p = projection([c[1], c[0]]);
-    if (!p) continue;
-    const [x, y] = p;
-    g.append("circle").attr("cx",x).attr("cy",y).attr("r",8).attr("data-base-r",8)
-      .attr("fill","url(#rainbow-dot)").attr("opacity",0.12).attr("class","school-glow");
-    g.append("circle").attr("cx",x).attr("cy",y).attr("r",3.5).attr("data-base-r",3.5)
-      .attr("fill","url(#rainbow-dot)").attr("opacity",0.7).attr("class","school-dot").style("cursor","pointer")
-      .on("mouseenter", function(e) {
-        const k = currentZoom ? currentZoom.k : 1;
-        d3.select(this).attr("r", 7/Math.sqrt(k));
-        ttSchool.textContent = school;
-        ttRegion.textContent = "Unassigned"; ttRegion.style.color = "#888";
-        const grps = SCHOOL_GROUPS[school];
-        const ttg = document.getElementById("tt-groups");
-        if (grps && grps.length) {
-          const poolGroups = grps.filter(gg => unassigned.includes(gg));
-          ttg.innerHTML = poolGroups.map(gg => `<span style="color:#ddd">${gg}</span>`).join(" · ");
-          ttg.style.display = poolGroups.length ? "block" : "none";
-        } else ttg.style.display="none";
-        tooltip.classList.add("visible");
-        tooltip.style.left = (e.clientX-mapRect.left+14)+"px";
-        tooltip.style.top = (e.clientY-mapRect.top-32)+"px";
-      })
-      .on("mousemove", function(e) {
-        tooltip.style.left = (e.clientX-mapRect.left+14)+"px";
-        tooltip.style.top = (e.clientY-mapRect.top-32)+"px";
-      })
-      .on("mouseleave", function() {
-        d3.select(this).attr("r", 3.5/Math.sqrt(currentZoom?currentZoom.k:1));
-        tooltip.classList.remove("visible");
-      });
-  }
-
   // Venue markers for selected region (scaled to match 2026 map)
   if (selectedRegionName && data[selectedRegionName]) {
     const rd = data[selectedRegionName];
@@ -1259,12 +1295,14 @@ function renderMap() {
   // Post-render zoom
   if (currentZoom && currentZoom.k !== 1) {
     const k = currentZoom.k;
-    g.selectAll(".school-dot").attr("r", function() { return (+d3.select(this).attr("data-base-r"))/Math.sqrt(k); });
-    g.selectAll(".school-glow").attr("r", function() { return (+d3.select(this).attr("data-base-r"))/Math.sqrt(k); });
+    const dotScale = Math.sqrt(k);
+    g.selectAll(".school-dot").attr("r", function() { return (+d3.select(this).attr("data-base-r"))/dotScale; });
+    g.selectAll(".school-glow").attr("r", function() { return (+d3.select(this).attr("data-base-r"))/dotScale; });
     g.selectAll(".state-path").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")||0.6)/k; });
+    g.selectAll(".venue-marker").attr("stroke-width", function() { return (+d3.select(this).attr("data-base-sw")||1.5)/dotScale; });
     g.selectAll(".venue-marker-g").each(function() {
       const el = d3.select(this);
-      el.attr("transform", `translate(${el.attr("data-tx")},${el.attr("data-ty")}) scale(${1/Math.sqrt(k)})`);
+      el.attr("transform", `translate(${el.attr("data-tx")},${el.attr("data-ty")}) scale(${1/dotScale})`);
     });
   }
 
