@@ -259,6 +259,18 @@ body {
 .view-mode .map-stats { display: flex; }
 .map-stat-val { color: #aaa; font-weight: 700; margin-right: 3px; }
 
+/* Group hover tooltip */
+.group-tooltip {
+  position: fixed; z-index: 300; pointer-events: none;
+  background: rgba(10,10,15,0.92); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; padding: 5px 11px; backdrop-filter: blur(12px);
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #aaa;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  opacity: 0; transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.group-tooltip.visible { opacity: 1; }
+
 /* Mobile disclaimer */
 .mobile-disclaimer {
   display: none; position: fixed; inset: 0; z-index: 200;
@@ -342,6 +354,7 @@ body {
     <div class="lasso-hint" id="lasso-hint">shift + drag to select schools</div>
     <div class="map-stats" id="map-stats"></div>
     <div id="venue-popup" class="venue-popup" style="display:none"></div>
+    <div id="group-tooltip" class="group-tooltip"></div>
     <div class="tooltip-box" id="tooltip">
       <div class="tt-school" id="tt-school"></div>
       <div class="tt-region" id="tt-region"></div>
@@ -1143,7 +1156,7 @@ function showQFDetailModal(regionName, qfIdx) {
     groupList += `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04)">
         <div>
-          <span style="font-weight:500">${g}</span>
+          <span style="font-weight:500" data-group-tip="${esc(g)}">${g}</span>
           ${school ? `<span style="font-size:10px;color:#666;margin-left:6px">${school}</span>` : ''}
         </div>
         <button class="region-action-btn del" onclick="event.stopPropagation();removeGroupFromQFModal('${esc(regionName)}',${qfIdx},'${esc(g)}')" title="Unassign to pool">✕</button>
@@ -1343,9 +1356,9 @@ function renderEditor() {
           h += `<div class="qf-groups"${vm?'':` ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToQF(event,'${esc(rn)}',${i})"`}>`;
           qf.groups.forEach(g => {
             if (vm) {
-              h += `<span class="group-tag">${g}</span>`;
+              h += `<span class="group-tag" data-group-tip="${esc(g)}">${g}</span>`;
             } else {
-              h += `<span class="group-tag" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
+              h += `<span class="group-tag" data-group-tip="${esc(g)}" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
               h += `${g}<span class="remove-group" onclick="event.stopPropagation();removeGroup('${esc(rn)}',${i},'${esc(g)}')" title="Remove">✕</span></span>`;
             }
           });
@@ -1365,7 +1378,7 @@ function renderEditor() {
   h += `<div class="qf-groups pool-drop" style="margin:0 10px 10px;border-radius:6px;border-style:dashed" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToPool(event)">`;
   if (unassigned.length) {
     unassigned.forEach(g => {
-      h += `<span class="group-tag" draggable="true" ondragstart="onDragStartPool(event,'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editPoolGroup('${esc(g)}')" title="Click to edit">`;
+      h += `<span class="group-tag" data-group-tip="${esc(g)}" draggable="true" ondragstart="onDragStartPool(event,'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editPoolGroup('${esc(g)}')" title="Click to edit">`;
       h += `${g}<span class="remove-group" onclick="event.stopPropagation();deletePoolGroup('${esc(g)}')" title="Delete permanently">✕</span></span>`;
     });
   } else {
@@ -1500,7 +1513,7 @@ function showVenuePopup(screenX, screenY, qf, qfIdx, regionName, regionData) {
       <button class="venue-popup-close" onclick="closeVenuePopup()">✕</button>
     </div>
     <div class="venue-popup-groups">
-      ${qf.groups.map(g => `<span class="venue-popup-group">${g}</span>`).join('')}
+      ${qf.groups.map(g => `<span class="venue-popup-group" data-group-tip="${g}">${g}</span>`).join('')}
     </div>`;
 }
 function closeVenuePopup() { document.getElementById('venue-popup').style.display = 'none'; }
@@ -1535,6 +1548,35 @@ function updateMapStats() {
     + `<span><span class="map-stat-val">${st.g}</span>Groups</span>`
     + `<span><span class="map-stat-val">${st.s}</span>Schools</span>`;
 }
+
+// ─── GLOBAL GROUP TOOLTIP ───
+(function() {
+  const gtt = document.getElementById('group-tooltip');
+  let activeEl = null;
+
+  document.addEventListener('mouseover', function(e) {
+    const el = e.target.closest('[data-group-tip]');
+    if (!el) { if (activeEl) { gtt.classList.remove('visible'); activeEl = null; } return; }
+    activeEl = el;
+    const groupName = el.getAttribute('data-group-tip');
+    const school = findSchoolForGroup(groupName);
+    gtt.textContent = school || 'Unknown school';
+    gtt.classList.add('visible');
+    gtt.style.left = (e.clientX + 14) + 'px';
+    gtt.style.top = (e.clientY - 10) + 'px';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!activeEl) return;
+    gtt.style.left = (e.clientX + 14) + 'px';
+    gtt.style.top = (e.clientY - 10) + 'px';
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    const el = e.target.closest('[data-group-tip]');
+    if (el === activeEl) { gtt.classList.remove('visible'); activeEl = null; }
+  });
+})();
 
 function toggleQF(rn, qi) {
   const key = rn + '|' + qi;
