@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026 ICCA Map</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
+<title>2026 ICCA Championship Map</title>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
- <style>
+<style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     min-height: 100vh;
@@ -42,12 +42,31 @@
   .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .sidebar-title { font-size: 12px; font-weight: 600; color: #888; letter-spacing: 1.5px; text-transform: uppercase; }
 
-  .view-toggle { display: flex; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 3px; border: 1px solid rgba(255,255,255,0.1); }
-  .view-toggle button {
-    padding: 6px 16px; border: none; background: transparent; color: #888;
-    font-family: 'Outfit'; font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; transition: all 0.2s;
+  .uk-info-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 5px 12px; color: #999; font-size: 11px;
+    font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s;
   }
-  .view-toggle button.active { background: rgba(255,255,255,0.1); color: #E8E6E3; }
+  .uk-info-btn:hover { background: rgba(255,255,255,0.1); color: #E8E6E3; border-color: rgba(255,255,255,0.2); }
+
+  .uk-popup-overlay {
+    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .uk-popup {
+    background: rgba(15,15,20,0.98); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px; padding: 24px 28px; max-width: 520px; width: 90%; max-height: 80vh;
+    overflow-y: auto; box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  }
+  .uk-popup h3 { margin: 0 0 4px; font-size: 16px; }
+  .uk-popup .uk-meta { font-size: 11px; color: #888; margin-bottom: 16px; }
+  .uk-popup .uk-qf { margin-bottom: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+  .uk-popup .uk-qf-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .uk-popup .uk-qf-meta { font-size: 10px; color: #888; margin-bottom: 8px; }
+  .uk-popup .uk-groups { display: flex; flex-wrap: wrap; gap: 4px; }
+  .uk-popup .uk-group { font-size: 10px; padding: 2px 8px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+  .uk-popup .uk-close { position: absolute; top: 16px; right: 18px; background: none; border: none; color: #666; font-size: 18px; cursor: pointer; }
+  .uk-popup .uk-close:hover { color: #fff; }
 
   .region-list { display: flex; flex-direction: column; gap: 6px; }
   .region-btn {
@@ -277,7 +296,6 @@
       margin-bottom: 12px; padding: 0;
     }
     .sidebar-title { font-size: 11px; }
-    .view-toggle button { padding: 6px 14px; font-size: 11px; }
 
     .region-list { gap: 4px; }
     .region-btn { padding: 12px 14px; font-size: 14px; }
@@ -313,7 +331,7 @@
 <div class="header">
   <div>
     <div class="header-subtitle">Varsity Vocals</div>
-    <h1>2026 ICCA</h1>
+    <h1>2026 ICCA Championship</h1>
     <p class="header-desc">International Championship of Collegiate A Cappella</p>
   </div>
   <div class="stats">
@@ -331,10 +349,7 @@
     <div class="sheet-content">
     <div class="sidebar-header">
       <span class="sidebar-title">Regions</span>
-      <div class="view-toggle">
-        <button id="btn-us" class="active" onclick="setView('us')">N. America</button>
-        <button id="btn-uk" onclick="setView('uk')">UK</button>
-      </div>
+      <button class="uk-info-btn" onclick="showUKPopup()">🇬🇧 UK</button>
     </div>
     <div class="region-list" id="region-list"></div>
     <div id="region-detail"></div>
@@ -353,6 +368,7 @@
     <div id="map-container"><div class="loading-msg" id="loading">Loading map data…</div></div>
     <div class="tooltip-box" id="tooltip"><div class="tooltip-school" id="tt-school"></div><div class="tooltip-region" id="tt-region"></div><div class="tooltip-groups" id="tt-groups"></div></div>
     <div id="venue-popup" style="display:none"></div>
+    <div id="uk-popup-overlay" style="display:none"></div>
     <div class="legend" id="legend"></div>
     <div class="zoom-controls">
       <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
@@ -505,14 +521,11 @@ const STATE_REGION = {
 };
 
 // ─── STATE ───
-let currentView = "us";
 let selectedRegion = null;
 let selectedQF = null;
 let usTopoData = null;
-let ukGeoData = null;
 let usProjection = null;
-let ukProjection = null;
-let highlightedQF = null; // index of QF whose schools should be highlighted
+let highlightedQF = null;
 
 // Get the set of schools that should be highlighted for current selection
 function getHighlightedSchools() {
@@ -536,21 +549,12 @@ const SCHOOL_GROUPS = {"Cornell University": ["The Chordials", "The Class Notes"
 // ─── LOAD MAP DATA ───
 async function loadData() {
   try {
-    const [usResp, ukResp] = await Promise.all([
-      fetch("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
-      fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"),
-    ]);
+    const usResp = await fetch("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json");
     usTopoData = await usResp.json();
-    ukGeoData = await ukResp.json();
   } catch(e) {
-    // Fallback: try alternative CDNs
     try {
-      const [usResp, ukResp] = await Promise.all([
-        fetch("https://unpkg.com/us-atlas@3/states-10m.json"),
-        fetch("https://unpkg.com/world-atlas@2/countries-110m.json"),
-      ]);
+      const usResp = await fetch("https://unpkg.com/us-atlas@3/states-10m.json");
       usTopoData = await usResp.json();
-      ukGeoData = await ukResp.json();
     } catch(e2) {
       document.getElementById("loading").textContent = "Could not load map boundaries. Dots will still display.";
     }
@@ -567,18 +571,35 @@ function renderAll() {
   renderLegend();
 }
 
-function setView(v) {
-  currentView = v;
-  selectedRegion = v === "uk" ? "United Kingdom" : null;
-  selectedQF = null;
-  highlightedQF = null;
-  currentZoom = null;
-  document.getElementById("btn-us").className = v === "us" ? "active" : "";
-  document.getElementById("btn-uk").className = v === "uk" ? "active" : "";
-  renderAll();
+function showUKPopup() {
+  const uk = REGIONS["United Kingdom"];
+  const overlay = document.getElementById("uk-popup-overlay");
+  const totalGroups = uk.quarterfinals.reduce((s,q) => s + q.groups.length, 0);
+  let qfHtml = '';
+  uk.quarterfinals.forEach((qf, i) => {
+    qfHtml += `<div class="uk-qf">
+      <div class="uk-qf-title" style="color:${uk.accent}">QF ${i+1} — ${qf.location}</div>
+      <div class="uk-qf-meta">${qf.date} · ${qf.groups.length} groups</div>
+      <div class="uk-groups">${qf.groups.map(g => {
+        const school = Object.entries(SCHOOL_GROUPS).find(([s, gs]) => gs.includes(g));
+        return `<span class="uk-group" title="${school ? school[0] : ''}">${g}</span>`;
+      }).join('')}</div>
+    </div>`;
+  });
+  overlay.className = "uk-popup-overlay";
+  overlay.style.display = "flex";
+  overlay.innerHTML = `<div class="uk-popup" style="position:relative">
+    <button class="uk-close" onclick="closeUKPopup()">✕</button>
+    <h3 style="color:${uk.color}">🇬🇧 United Kingdom</h3>
+    <div class="uk-meta">${uk.schools.length} schools · ${totalGroups} groups · ${uk.quarterfinals.length} quarterfinals · Semifinal ${uk.semifinal.date} at ${uk.semifinal.location}</div>
+    ${qfHtml}
+  </div>`;
+  overlay.onclick = (e) => { if (e.target === overlay) closeUKPopup(); };
 }
+function closeUKPopup() { document.getElementById("uk-popup-overlay").style.display = "none"; }
 
 function selectRegion(name) {
+  if (name === "United Kingdom") return;
   selectedRegion = selectedRegion === name ? null : name;
   selectedQF = null;
   highlightedQF = null;
@@ -734,11 +755,7 @@ function renderMap() {
     svg.call(zoom.transform, currentZoom);
   }
 
-  if (currentView === "us") {
-    renderUSMap(g, w, h);
-  } else {
-    renderUKMap(g, w, h);
-  }
+  renderUSMap(g, w, h);
 
   // Add reset zoom button behavior
   window.resetZoom = () => {
@@ -1169,186 +1186,12 @@ function renderUSMap(svg, w, h) {
   }
 }
 
-function renderUKMap(svg, w, h) {
-  ukProjection = d3.geoMercator().center([-2, 54]).scale(w * 2.8).translate([w / 2, h / 2]);
-  const path = d3.geoPath().projection(ukProjection);
-  const data = REGIONS["United Kingdom"];
-
-  // Draw UK boundary if data loaded
-  if (ukGeoData) {
-    const countries = topojson.feature(ukGeoData, ukGeoData.objects.countries);
-    // UK is id 826
-    const uk = countries.features.filter(f => f.id === "826" || f.properties.name === "United Kingdom");
-    // Also try Ireland for context
-    const ireland = countries.features.filter(f => f.id === "372" || f.properties.name === "Ireland");
-    const nearby = [...uk, ...ireland];
-
-    svg.append("g").selectAll("path")
-      .data(nearby)
-      .enter().append("path")
-      .attr("d", path)
-      .attr("fill", d => (d.id === "826" || d.properties.name === "United Kingdom") ? data.color + "12" : "rgba(255,255,255,0.02)")
-      .attr("stroke", d => (d.id === "826" || d.properties.name === "United Kingdom") ? data.color + "50" : "rgba(255,255,255,0.06)")
-      .attr("stroke-width", 1);
-  }
-
-  // School dots
-  const tooltip = document.getElementById("tooltip");
-  const ttSchool = document.getElementById("tt-school");
-  const ttRegion = document.getElementById("tt-region");
-  const mapRect = document.querySelector(".map-area").getBoundingClientRect();
-  const hlSchools = getHighlightedSchools();
-
-  // Collect and render UK dots at geographic positions (spreading on zoom)
-  for (const school of data.schools) {
-    const c = SCHOOL_COORDS[school];
-    if (!c) continue;
-    const projected = ukProjection([c[1], c[0]]);
-    if (!projected) continue;
-    const [x, y] = projected;
-    const isInQF = hlSchools ? hlSchools.has(school) : null;
-    const isDimmedByQF = hlSchools && !isInQF;
-    const isBrightByQF = hlSchools && isInQF;
-
-    const dotR = isBrightByQF ? 7 : 5;
-    const dotOp = isDimmedByQF ? 0.1 : 0.9;
-
-    if (!isDimmedByQF) {
-      svg.append("circle").attr("cx", x).attr("cy", y).attr("r", isBrightByQF ? 14 : 10)
-        .attr("data-base-r", isBrightByQF ? 14 : 10)
-        .attr("data-ox", x).attr("data-oy", y)
-        .attr("fill", data.color + (isBrightByQF ? "25" : "18")).attr("class", "school-glow");
-    }
-    const dot = svg.append("circle").attr("cx", x).attr("cy", y).attr("r", dotR)
-      .attr("data-base-r", dotR)
-      .attr("data-ox", x).attr("data-oy", y)
-      .attr("fill", data.color).attr("opacity", dotOp).attr("class", "school-dot")
-      .style("cursor", "pointer")
-      .on("mouseenter", function(e) {
-        const k = currentZoom ? currentZoom.k : 1;
-        const ds = isMobile() ? Math.pow(k, 0.45) : Math.sqrt(k);
-        d3.select(this).attr("r", 8 / ds);
-        ttSchool.textContent = school;
-        ttRegion.textContent = "United Kingdom";
-        ttRegion.style.color = data.accent;
-        const groups = SCHOOL_GROUPS[school];
-        const ttGroups = document.getElementById("tt-groups");
-        if (groups && groups.length > 0) {
-          ttGroups.innerHTML = groups.map(g => `<span style="color:#ddd">${g}</span>`).join(" · ");
-          ttGroups.style.display = "block";
-        } else {
-          ttGroups.style.display = "none";
-        }
-        tooltip.classList.add("visible");
-        const rx = e.clientX - mapRect.left;
-        const ry = e.clientY - mapRect.top;
-        tooltip.style.left = (rx + 14) + "px";
-        tooltip.style.top = (ry - 32) + "px";
-      })
-      .on("mousemove", function(e) {
-        const rx = e.clientX - mapRect.left;
-        const ry = e.clientY - mapRect.top;
-        tooltip.style.left = (rx + 14) + "px";
-        tooltip.style.top = (ry - 32) + "px";
-      })
-      .on("mouseleave", function() {
-        const k = currentZoom ? currentZoom.k : 1;
-        const ds = isMobile() ? Math.pow(k, 0.45) : Math.sqrt(k);
-        d3.select(this).attr("r", dotR / ds);
-        tooltip.classList.remove("visible");
-      });
-  }
-
-  // QF venue markers for UK
-  const venueGroup = svg.append("g").attr("class", "venue-markers");
-
-  // Semifinal
-  if (data.semifinal.lat) {
-    const sp = ukProjection([data.semifinal.lng, data.semifinal.lat]);
-    if (sp) {
-      const [sx, sy] = sp;
-      const sg = venueGroup.append("g").attr("class", "venue-marker-g").attr("data-tx", sx).attr("data-ty", sy).attr("transform", `translate(${sx},${sy})`);
-      const mob = isMobile();
-      const star = d3.symbol().type(d3.symbolStar).size(mob ? 66 : 220);
-      sg.append("circle").attr("cx", 0).attr("cy", 0).attr("r", mob ? 6 : 16).attr("fill", data.color + "20").attr("stroke", data.color + "40").attr("stroke-width", mob ? 0.5 : 1);
-      sg.append("path").attr("d", star)
-        .attr("fill", "#FFD700").attr("stroke", "#FFD700").attr("stroke-width", 0.5).attr("opacity", 0.9)
-        .attr("class", "venue-marker")
-        .on("mouseenter", function(e) {
-          ttSchool.textContent = "★ SEMIFINAL — " + data.semifinal.location;
-          ttRegion.textContent = data.semifinal.date + " · United Kingdom";
-          ttRegion.style.color = "#FFD700";
-          document.getElementById("tt-groups").style.display = "none";
-          tooltip.classList.add("visible");
-          const rx = e.clientX - mapRect.left;
-          const ry = e.clientY - mapRect.top;
-          tooltip.style.left = (rx + 14) + "px";
-          tooltip.style.top = (ry - 32) + "px";
-        })
-        .on("mouseleave", function() { tooltip.classList.remove("visible"); });
-    }
-  }
-
-  data.quarterfinals.forEach((qf, i) => {
-    if (!qf.lat) return;
-    const projected = ukProjection([qf.lng, qf.lat]);
-    if (!projected) return;
-    const [vx, vy] = projected;
-    const mob = isMobile();
-    const isHighlighted = highlightedQF === i;
-    const qg = venueGroup.append("g").attr("class", "venue-marker-g").attr("data-tx", vx).attr("data-ty", vy).attr("transform", `translate(${vx},${vy})`);
-
-    const s = mob ? 3.5 : 8;
-    const ukGlowR = isHighlighted ? (mob ? 6 : 20) : (mob ? 5 : 16);
-    qg.append("circle").attr("cx", 0).attr("cy", 0).attr("r", ukGlowR)
-      .attr("fill", data.color + (isHighlighted ? "30" : "15")).attr("stroke", isHighlighted ? data.color + "50" : "none").attr("stroke-width", isHighlighted ? 1.5 : 0);
-    const diamond = `M0,${-s} L${s},0 L0,${s} L${-s},0 Z`;
-    const ukDSW = mob ? (isHighlighted ? 1.2 : 0.8) : (isHighlighted ? 2.5 : 1.5);
-    qg.append("path").attr("d", diamond)
-      .attr("fill", isHighlighted ? data.accent : data.color).attr("stroke", "#fff").attr("stroke-width", ukDSW).attr("opacity", 0.95)
-      .attr("class", "venue-marker")
-      .style("cursor", "pointer")
-      .on("mouseenter", function(e) {
-        d3.select(this).attr("stroke-width", 2.5);
-        ttSchool.textContent = `QF ${i+1} — ${qf.location}`;
-        ttRegion.textContent = `${qf.date} · ${qf.groups.length} groups · click to highlight schools`;
-        ttRegion.style.color = data.accent;
-        document.getElementById("tt-groups").style.display = "none";
-        tooltip.classList.add("visible");
-        const rx = e.clientX - mapRect.left;
-        const ry = e.clientY - mapRect.top;
-        tooltip.style.left = (rx + 14) + "px";
-        tooltip.style.top = (ry - 32) + "px";
-      })
-      .on("mouseleave", function() {
-        d3.select(this).attr("stroke-width", isHighlighted ? 2.5 : 1.5);
-        tooltip.classList.remove("visible");
-      })
-      .on("click", function(e) {
-        tooltip.classList.remove("visible");
-        highlightedQF = highlightedQF === i ? null : i;
-        selectedQF = highlightedQF;
-        showVenuePopup(e.clientX, e.clientY, qf, i, "United Kingdom", data);
-        renderDetail();
-        renderMap();
-      });
-
-    qg.append("text").attr("x", 0).attr("y", 0)
-      .attr("text-anchor", "middle").attr("dy", "0.35em")
-      .attr("fill", "#fff").attr("font-size", (mob ? 5 : 9) + "px").attr("font-weight", "700")
-      .attr("font-family", "'Space Mono', monospace")
-      .attr("pointer-events", "none")
-      .text(i + 1);
-  });
-}
-
 // ─── SIDEBAR ───
 function renderRegionList() {
   const list = document.getElementById("region-list");
   list.innerHTML = "";
   for (const [name, data] of Object.entries(REGIONS)) {
-    if (currentView === "uk" && name !== "United Kingdom") continue;
-    if (currentView === "us" && name === "United Kingdom") continue;
+    if (name === "United Kingdom") continue;
     const count = data.quarterfinals.reduce((s, qf) => s + qf.groups.length, 0);
     const btn = document.createElement("button");
     btn.className = "region-btn" + (selectedRegion === name ? " active" : "");
@@ -1384,7 +1227,7 @@ function renderDetail() {
 
 function renderLegend() {
   const el = document.getElementById("legend");
-  if (selectedRegion || currentView === "uk") { el.style.display = "none"; return; }
+  if (selectedRegion) { el.style.display = "none"; return; }
   el.style.display = "block";
   el.innerHTML = `<div class="legend-title">Legend</div>` +
     Object.entries(REGIONS).filter(([n]) => n !== "United Kingdom").map(([name, data]) =>
@@ -1393,7 +1236,7 @@ function renderLegend() {
 }
 
 // Resize handler
-window.addEventListener("resize", () => { if (usTopoData || ukGeoData) renderMap(); });
+window.addEventListener("resize", () => { if (usTopoData) renderMap(); });
 
 // Init
 loadData();
