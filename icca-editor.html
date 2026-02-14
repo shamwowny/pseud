@@ -1274,7 +1274,11 @@ function showModal(title, body, onConfirm) {
     </div>`;
   overlay.classList.add('active');
   document.getElementById('modal-ok').onclick = () => { onConfirm(); closeModal(); };
-  setTimeout(() => { const inp = modal.querySelector('input'); if (inp) inp.focus(); }, 50);
+  setTimeout(() => {
+    const inp = modal.querySelector('input');
+    if (inp) inp.focus();
+    else document.getElementById('modal-ok').focus();
+  }, 50);
   modal.onkeydown = (e) => { if (e.key==='Enter' && e.target.tagName!=='SELECT') { onConfirm(); closeModal(); } };
 }
 function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
@@ -2120,6 +2124,25 @@ window.resetZoom = () => { currentZoom=null; if (mapSvg&&mapZoom) mapSvg.transit
     });
   });
 })();
+
+// ─── KEYBOARD SHORTCUTS ───
+document.addEventListener('keydown', (e) => {
+  // Ctrl+Z / Cmd+Z: Undo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    undoAction();
+    return;
+  }
+  // Escape: Close modal or UK popup
+  if (e.key === 'Escape') {
+    if (document.getElementById('modal-overlay').classList.contains('active')) {
+      closeModal();
+    } else if (document.querySelector('.uk-popup-overlay')) {
+      closeUKPopup();
+    }
+    return;
+  }
+});
 
 // ─── INIT ───
 renderEditor();
