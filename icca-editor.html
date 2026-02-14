@@ -302,6 +302,7 @@ body {
 
 <div class="toolbar">
   <div class="toolbar-left">
+    <button class="tb-btn" onclick="showAbout()" style="font-size:15px;padding:4px 8px" title="About">ⓘ</button>
     <button class="tb-btn" onclick="resetToDefault()" style="display:flex;align-items:center;gap:5px">⟲ Reset to 2026</button>
     <div>
       <div class="toolbar-subtitle">ICCA REGION</div>
@@ -1328,6 +1329,39 @@ function handleImport(e) {
   reader.readAsText(file);
   e.target.value = '';
 }
+function showAbout() {
+  const modal = document.getElementById('modal');
+  const overlay = document.getElementById('modal-overlay');
+  modal.innerHTML = `<h3>About</h3>
+    <div style="font-size:12px;color:#ccc;line-height:1.7;max-height:60vh;overflow-y:auto;padding-right:8px">
+      <p style="margin:0 0 16px;color:#999;font-style:italic">Website created by <a href="https://brycedav.is" target="_blank" style="color:#7B8CDE">Bryce Davis</a> using Claude Opus 4.6. Feel free to email with bug reports or feature suggestions: <a href="mailto:bryce@brycedav.is" style="color:#7B8CDE">bryce@brycedav.is</a></p>
+
+      <h4 style="margin:0 0 8px;font-size:13px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px">ICCA Region Assignment Editor</h4>
+      <p style="margin:0 0 12px">An interactive sandbox for experimenting with ICCA region restructuring and quarterfinal group assignments. Built for the people who stare at the bracket and think "what if we moved them there instead?"</p>
+
+      <h4 style="margin:16px 0 8px;font-size:12px;color:#aaa">Core Editing</h4>
+      <p style="margin:0 0 8px">Drag-and-drop groups between QFs within and across regions. Add, rename, and delete regions, quarterfinals, and groups. Edit group name, school, and QF assignment via modal. Move groups to/from an unassigned pool. Lasso-select school dots on the map to bulk-assign groups. 30-level undo stack (Ctrl/Cmd+Z). One-click reset to official 2026 data.</p>
+
+      <h4 style="margin:16px 0 8px;font-size:12px;color:#aaa">Map</h4>
+      <p style="margin:0 0 8px">Full US map with states colored by region, powered by D3.js and TopoJSON. Ontario province outline for Canadian schools. School dots colored by region — every dot follows its groups when reassigned. QF venue markers (diamonds) and semifinal markers (stars). Co-located QFs indicated with a + pip and tabbed popups for switching between them. Zoom and pan with scaled dot sizes.</p>
+
+      <h4 style="margin:16px 0 8px;font-size:12px;color:#aaa">View Mode / Edit Mode</h4>
+      <p style="margin:0 0 8px">View mode for exploring the current structure with QF highlighting, venue popups, and stats bar. Edit mode for full drag-and-drop, lasso selection, and modals. Defaults to view mode on load.</p>
+
+      <h4 style="margin:16px 0 8px;font-size:12px;color:#aaa">Import / Export</h4>
+      <p style="margin:0 0 8px">Export or import full region configs as JSON. Export all groups as CSV (Group, School, Region, QF, Location, Date). Import groups from CSV with flexible placement — provide Region + QF for exact placement, Region only to default to QF1, or just Group + School to add to the unassigned pool.</p>
+
+      <h4 style="margin:16px 0 8px;font-size:12px;color:#aaa">Keyboard Shortcuts</h4>
+      <p style="margin:0 0 4px"><span style="color:#fff;font-family:'Space Mono',monospace;font-size:11px">Ctrl/Cmd+Z</span> — Undo</p>
+      <p style="margin:0 0 4px"><span style="color:#fff;font-family:'Space Mono',monospace;font-size:11px">Enter</span> — Confirm modal or dialog</p>
+      <p style="margin:0 0 4px"><span style="color:#fff;font-family:'Space Mono',monospace;font-size:11px">Escape</span> — Close modal or popup</p>
+    </div>
+    <div class="modal-actions">
+      <button class="tb-btn primary" onclick="closeModal()">Close</button>
+    </div>`;
+  overlay.classList.add('active');
+}
+
 function resetToDefault() {
   if (!confirm('Reset all changes to the default 2026 data?')) return;
   saveUndo();
