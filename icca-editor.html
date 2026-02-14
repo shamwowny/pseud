@@ -469,6 +469,7 @@ const REGIONS = {
   }
 };
 
+const QF_SCHOOLS = {"Central-0": ["Ithaca College", "Binghamton University", "Syracuse University", "Cornell University", "Lehigh University"], "Central-1": ["Toronto Metropolitan University", "University of Waterloo", "Western University", "University of Toronto", "McMaster University"], "Central-2": ["Queen's University", "Rochester Institute of Technology", "Nazareth University", "Wilfrid Laurier University", "University of Rochester", "Monroe Community College", "SUNY Fredonia"], "Central-3": ["University of Pittsburgh", "Carnegie Mellon University"], "Central-4": ["Penn State University", "Duquesne University", "Millersville University", "Indiana University of Pennsylvania", "Lehigh University"], "Great Lakes-0": ["Columbia College Chicago", "Northwestern University", "Eastern Illinois University", "University of Wisconsin - Parkside", "University of Illinois Urbana-Champaign", "University of Chicago", "University of Wisconsin - Madison", "North Central College"], "Great Lakes-1": ["University of Wisconsin - Stevens Point", "Marquette University", "University of Minnesota", "University of Wisconsin - Eau Claire", "University of Wisconsin - Madison"], "Great Lakes-2": ["Northwestern University", "Loyola University - Chicago", "Central Michigan University", "Wayne State University", "Michigan State University", "Grand Valley State University", "Oakland University", "University of Michigan"], "Great Lakes-3": ["Western Michigan University", "University of Michigan - Ann Arbor", "Macomb Community College", "Michigan State University", "University of Michigan"], "Great Lakes-4": ["Illinois State University", "University Of Wisconsin - Milwaukee", "University of Illinois", "Northern Illinois University"], "Mid-Atlantic-0": ["University of Maryland", "The College of New Jersey", "Rowan University", "Rutgers University", "Westminster Choir College"], "Mid-Atlantic-1": ["University of Maryland Eastern Shore", "University of Maryland", "Villanova University", "University of Pennsylvania", "Drexel University", "Georgetown University", "Temple University"], "Mid-Atlantic-2": ["Towson University", "University of Maryland Baltimore County", "George Washington University", "Salisbury University", "Johns Hopkins University"], "Mid-Atlantic-3": ["Southern Virginia University", "Virginia Commonwealth University", "George Mason University", "William & Mary", "James Madison University", "Christopher Newport University", "Washington and Lee University"], "Mid-Atlantic-4": ["University of Delaware", "Lafayette College", "West Chester University", "Stockton University"], "Midwest-0": ["Kent State University", "Indiana University Indianapolis", "Purdue University", "Bowling Green State University", "Miami University", "Indiana University", "Washington University in St. Louis", "University of Dayton"], "Midwest-1": ["University of Notre Dame", "Saint Louis University", "Missouri University of Science and Technology", "University of Missouri", "University of Cincinnati", "Washington University in St. Louis"], "Midwest-2": ["University of Kansas", "Saint Louis University", "Iowa State University", "Missouri State University", "Truman State University", "Murray State University", "Washington University in St. Louis"], "Midwest-3": ["Case Western Reserve University", "The Ohio State University", "Bowling Green State University", "University of Dayton", "Baldwin Wallace University"], "Midwest-4": ["Case Western Reserve University", "Ohio University", "University of Kentucky", "The Ohio State University", "The University of Akron", "Baldwin Wallace University"], "Northeast-0": ["University of Vermont", "SUNY Potsdam", "SUNY New Paltz", "Rensselaer Polytechnic Institute", "University at Albany", "University of Massachusetts Amherst"], "Northeast-1": ["Boston University", "The Colleges of Fenway", "The New School", "Northeastern University", "Wesleyan University", "Emerson College", "Boston College", "Brown University", "Worcester Polytechnic Institute"], "Northeast-2": ["Boston University", "Berklee College of Music", "Suffolk University", "Bryant University", "Northeastern University", "Boston College", "Marist University", "Bentley University"], "Northeast-3": ["University of Hartford", "Hunter College", "Roger Williams University", "Fordham University", "University of Connecticut", "Eastern Connecticut State University", "Quinnipiac University", "New York University"], "Northeast-4": ["Pace University", "Hofstra University", "Columbia University", "New York University"], "South-0": ["University of Mount Olive", "North Carolina State University", "University of Georgia", "Georgia Institute of Technology", "University of North Carolina at Chapel Hill", "University of South Carolina", "High Point University"], "South-1": ["Florida International University", "University of Miami", "University of Central Florida", "University of Florida", "University of South Florida"], "South-2": ["Belmont University", "East Tennessee State University", "University of Tennessee", "Vanderbilt University"], "South-3": ["Vanderbilt University", "North Carolina State University", "Wake Forest University", "Emory University", "Appalachian State University", "Duke University", "University of North Carolina At Greensboro"], "South-4": ["University of Southern Mississippi", "Pearl River Community College", "Florida State University", "Mississippi State University", "East Central Community College", "University of Alabama", "Emory University"], "Southwest-0": ["University of Houston", "Baylor University", "Texas A&M University", "University of Texas at Arlington", "Texas Tech University", "University of Texas at Austin", "University of Texas at Dallas"], "Southwest-1": ["University of Denver", "Colorado State University", "University of Nebraska", "Oklahoma City University", "University of Colorado Boulder"], "Southwest-2": ["University of California, San Diego", "University of California, Irvine", "San Diego State University"], "Southwest-3": ["Grand Canyon University", "Arizona State University", "Northern Arizona University", "University of Arizona"], "Southwest-4": ["Mt. San Antonio College", "The Claremont Colleges", "Northern Arizona University", "University of California, Irvine"], "United Kingdom-0": ["University of Cambridge", "University of Aberdeen", "University of St Andrews", "University of Stirling", "University of Edinburgh"], "United Kingdom-1": ["University of Warwick", "University of Nottingham", "University of Leeds", "University of Sheffield", "University of York", "University of Birmingham"], "United Kingdom-2": ["University of Bath", "University of Exeter", "University of Bristol", "Cardiff University", "Royal Welsh College of Music and Drama"], "United Kingdom-3": ["University of Warwick", "University of Oxford", "Cardiff University", "Lancaster University", "Newcastle University", "Durham University", "University of Manchester", "University of Birmingham"], "United Kingdom-4": ["University of Nottingham", "University College London", "King's College London", "Imperial College London", "London School of Economics", "University of Reading"], "West-0": ["University of British Columbia", "Gonzaga University", "Western Washington University", "University of Washington"], "West-1": ["University of Utah", "Oregon State University", "Portland State University", "University of Oregon", "Southern Oregon University", "Montana State University", "Willamette University"], "West-2": ["University of Southern California", "Chapman University", "University of California, Santa Barbara", "University of California, Los Angeles", "California State University, Fullerton", "Moorpark College"], "West-3": ["Chapman University", "California State University, Northridge", "University of California, Los Angeles", "University of California, Santa Cruz"], "West-4": ["San Jose State University", "Diablo Valley College", "UC Berkeley", "Stanford University", "University of California, Davis"]};
 const SCHOOL_COORDS = {
   "Cornell University":[42.45,-76.47],"Lehigh University":[40.61,-75.38],"Binghamton University":[42.09,-75.97],"Ithaca College":[42.42,-76.50],"Syracuse University":[43.04,-76.14],"University of Waterloo":[43.47,-80.54],"Western University":[43.01,-81.27],"McMaster University":[43.26,-79.92],"Toronto Metropolitan University":[43.66,-79.38],"University of Toronto":[43.66,-79.40],"Rochester Institute of Technology":[43.08,-77.67],"Queen's University":[44.23,-76.50],"Nazareth University":[43.10,-77.51],"SUNY Fredonia":[42.45,-79.33],"Wilfrid Laurier University":[43.47,-80.53],"Monroe Community College":[43.08,-77.62],"University of Rochester":[43.13,-77.63],"University of Pittsburgh":[40.44,-79.96],"Carnegie Mellon University":[40.44,-79.94],"Penn State University":[40.80,-77.86],"Millersville University":[39.99,-76.35],"Indiana University of Pennsylvania":[40.62,-79.15],"Duquesne University":[40.44,-79.99],
   "Eastern Illinois University":[39.48,-88.18],"University of Chicago":[41.79,-87.60],"North Central College":[41.77,-88.15],"University of Wisconsin - Madison":[43.08,-89.41],"Columbia College Chicago":[41.87,-87.62],"University of Illinois Urbana-Champaign":[40.10,-88.23],"University of Wisconsin - Parkside":[42.64,-87.85],"Northwestern University":[42.06,-87.68],"University of Minnesota":[44.97,-93.23],"University of Wisconsin - Stevens Point":[44.53,-89.57],"Marquette University":[43.04,-87.93],"University of Wisconsin - Eau Claire":[44.80,-91.50],"Loyola University - Chicago":[41.99,-87.66],"Grand Valley State University":[42.96,-85.89],"University of Michigan":[42.28,-83.74],"Oakland University":[42.67,-83.22],"Wayne State University":[42.36,-83.07],"Central Michigan University":[43.59,-84.77],"Michigan State University":[42.73,-84.48],"Macomb Community College":[42.67,-82.95],"Western Michigan University":[42.28,-85.61],"Illinois State University":[40.51,-88.99],"Northern Illinois University":[41.93,-88.77],"University of Illinois":[40.10,-88.23],"University Of Wisconsin - Milwaukee":[43.08,-87.88],
@@ -494,13 +495,16 @@ const STATE_REGION = {
 };
 
 
-// ─── HELPERS ───
+const ORIG_STATE_REGION = Object.assign({}, STATE_REGION);
+const ORIG_SCHOOL_GROUPS = JSON.parse(JSON.stringify(SCHOOL_GROUPS));
+const ORIG_SCHOOL_COORDS = JSON.parse(JSON.stringify(SCHOOL_COORDS));
 function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
 function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 // ─── STATE ───
 let data = deepClone(REGIONS);
-let unassigned = []; // groups not assigned to any QF
+encodeGroups(data);
+let unassigned = []; // groups not assigned to any QF (also encoded)
 let undoStack = [];
 let openRegions = {};
 let openQFs = {};
@@ -532,7 +536,7 @@ function getQFSchools(regionName, qfIdx) {
   if (!qf) return null;
   const schools = new Set();
   for (const g of qf.groups) {
-    const s = findSchoolForGroupInQF(g, regionName, qfIdx);
+    const s = schoolOf(g);
     if (s) schools.add(s);
   }
   return schools;
@@ -544,53 +548,60 @@ function totalStats() {
 }
 
 // Find which school a group belongs to
-function findSchoolForGroup(groupName) {
-  const matches = [];
-  for (const [school, groups] of Object.entries(SCHOOL_GROUPS)) {
-    if (groups.includes(groupName)) matches.push(school);
+// Group names stored as "GroupName@SchoolName" internally
+// Display helpers strip the @suffix
+function displayName(g) { const i = g.lastIndexOf('@'); return i > 0 ? g.substring(0, i) : g; }
+function schoolOf(g) { const i = g.lastIndexOf('@'); return i > 0 ? g.substring(i + 1) : null; }
+
+// Encode all groups at init using QF_SCHOOLS as authoritative school mapping
+function encodeGroups(regionData) {
+  // Build group->school from QF_SCHOOLS: "RegionName-qfIdx" -> [schools]
+  // For each QF, we know exactly which schools are in it
+  const qfSchoolMap = {}; // "regionName|qfIdx" -> Set of schools
+  for (const [key, schools] of Object.entries(QF_SCHOOLS)) {
+    qfSchoolMap[key] = new Set(schools);
   }
-  if (matches.length === 1) return matches[0];
-  if (matches.length > 1) return matches[0]; // fallback to first match
-  return null;
+
+  // Build global reverse map: groupName -> [school1, school2, ...]
+  const groupToSchools = {};
+  for (const [school, groups] of Object.entries(SCHOOL_GROUPS)) {
+    for (const g of groups) {
+      if (!groupToSchools[g]) groupToSchools[g] = [];
+      groupToSchools[g].push(school);
+    }
+  }
+
+  for (const [rn, rd] of Object.entries(regionData)) {
+    rd.quarterfinals.forEach((qf, qi) => {
+      // Get authoritative school list for this QF
+      const qfKey = rn + '-' + qi;
+      const authSchools = qfSchoolMap[qfKey];
+
+      qf.groups = qf.groups.map(g => {
+        if (g.includes('@')) return g;
+        const candidates = groupToSchools[g];
+        if (!candidates || !candidates.length) return g;
+        if (candidates.length === 1) return g + '@' + candidates[0];
+        // Use authoritative QF_SCHOOLS to disambiguate
+        if (authSchools) {
+          const inAuth = candidates.find(s => authSchools.has(s));
+          if (inAuth) return g + '@' + inAuth;
+        }
+        return g + '@' + candidates[0];
+      });
+    });
+  }
 }
 
-// Context-aware: find school for a group within a specific QF's school pool
-function findSchoolForGroupInQF(groupName, regionName, qfIdx) {
-  // Get all schools that have a group with this name
-  const candidates = [];
+// Legacy wrapper for pool/no-context
+function findSchoolForGroup(groupName) {
+  // If already encoded
+  const s = schoolOf(groupName);
+  if (s) return s;
   for (const [school, groups] of Object.entries(SCHOOL_GROUPS)) {
-    if (groups.includes(groupName)) candidates.push(school);
+    if (groups.includes(groupName)) return school;
   }
-  if (candidates.length <= 1) return candidates[0] || null;
-
-  // Use QF context to disambiguate
-  if (regionName && qfIdx != null && data[regionName] && data[regionName].quarterfinals[qfIdx]) {
-    const qfGroups = data[regionName].quarterfinals[qfIdx].groups;
-
-    // Prefer school with other groups also in this same QF
-    for (const school of candidates) {
-      if (SCHOOL_GROUPS[school].some(g => g !== groupName && qfGroups.includes(g))) return school;
-    }
-
-    // Prefer school that was originally in this region (from REGIONS baseline)
-    const origRegion = REGIONS[regionName];
-    if (origRegion) {
-      for (const school of candidates) {
-        if (origRegion.schools.includes(school)) return school;
-      }
-    }
-
-    // Prefer school whose OTHER groups appear anywhere in this region's QFs
-    const allRegionGroups = new Set();
-    for (const qf of data[regionName].quarterfinals) {
-      for (const g of qf.groups) allRegionGroups.add(g);
-    }
-    for (const school of candidates) {
-      if (SCHOOL_GROUPS[school].some(g => g !== groupName && allRegionGroups.has(g))) return school;
-    }
-  }
-
-  return candidates[0];
+  return null;
 }
 
 // Rebuild schools list from QF group assignments
@@ -599,7 +610,7 @@ function rebuildSchools(regionName) {
   const schoolSet = new Set();
   region.quarterfinals.forEach((qf, qi) => {
     for (const group of qf.groups) {
-      const school = findSchoolForGroupInQF(group, regionName, qi);
+      const school = schoolOf(group) || findSchoolForGroup(displayName(group));
       if (school) schoolSet.add(school);
     }
   });
@@ -818,12 +829,13 @@ function addGroup() {
       SCHOOL_COORDS[pseudoSchool] = [lat, lng];
       SCHOOL_GROUPS[pseudoSchool] = [groupName];
     }
-    // Assign to pool or QF
+    // Assign to pool or QF (encode with @school)
+    const encoded = schoolName ? groupName + '@' + schoolName : groupName;
     if (target === '__pool__') {
-      unassigned.push(groupName);
+      unassigned.push(encoded);
     } else {
       const [rn, qi] = target.split('|');
-      data[rn].quarterfinals[parseInt(qi)].groups.push(groupName);
+      data[rn].quarterfinals[parseInt(qi)].groups.push(encoded);
       rebuildSchools(rn);
     }
     renderEditor(); renderMap();
@@ -831,7 +843,8 @@ function addGroup() {
 }
 
 function editGroup(regionName, qfIdx, groupName) {
-  const school = findSchoolForGroupInQF(groupName, regionName, qfIdx);
+  const school = schoolOf(groupName) || findSchoolForGroup(displayName(groupName));
+  const dn = displayName(groupName);
   const coords = school ? SCHOOL_COORDS[school] : null;
   let opts = '<option value="__pool__">— Unassigned Pool —</option>';
   for (const [rn, rd] of Object.entries(data)) {
@@ -842,7 +855,7 @@ function editGroup(regionName, qfIdx, groupName) {
   }
   showModal(`Edit Group`, `
     <div class="modal-label">Group Name</div>
-    <input class="modal-input" id="m-group" value="${esc(groupName)}">
+    <input class="modal-input" id="m-group" value="${esc(dn)}">
     <div class="modal-label">School</div>
     <input class="modal-input" id="m-school" value="${esc(school||'')}" list="school-list-edit">
     <datalist id="school-list-edit">${Object.keys(SCHOOL_COORDS).sort().map(s=>`<option value="${esc(s)}">`).join('')}</datalist>
@@ -856,35 +869,33 @@ function editGroup(regionName, qfIdx, groupName) {
     if (!newName) return;
     saveUndo();
 
-    // Remove from old location
+    // Remove from old location (uses full encoded string)
     const oldGroups = data[regionName].quarterfinals[qfIdx].groups;
     const idx = oldGroups.indexOf(groupName);
     if (idx !== -1) oldGroups.splice(idx, 1);
 
-    // Rename in SCHOOL_GROUPS if name changed
-    if (newName !== groupName) {
-      for (const groups of Object.values(SCHOOL_GROUPS)) {
-        const gi = groups.indexOf(groupName);
-        if (gi !== -1) groups[gi] = newName;
-      }
+    // Update SCHOOL_GROUPS
+    const finalSchool = newSchool || school || '';
+    if (newName !== dn && school) {
+      const gs = SCHOOL_GROUPS[school];
+      if (gs) { const gi = gs.indexOf(dn); if (gi !== -1) gs[gi] = newName; }
     }
-
-    // Update school assignment if changed
-    if (newSchool && newSchool !== school) {
+    if (finalSchool && finalSchool !== school) {
       if (school && SCHOOL_GROUPS[school]) {
-        const gi = SCHOOL_GROUPS[school].indexOf(newName);
+        const gi = SCHOOL_GROUPS[school].indexOf(newName !== dn ? newName : dn);
         if (gi !== -1) SCHOOL_GROUPS[school].splice(gi, 1);
       }
-      if (!SCHOOL_GROUPS[newSchool]) SCHOOL_GROUPS[newSchool] = [];
-      if (!SCHOOL_GROUPS[newSchool].includes(newName)) SCHOOL_GROUPS[newSchool].push(newName);
+      if (!SCHOOL_GROUPS[finalSchool]) SCHOOL_GROUPS[finalSchool] = [];
+      if (!SCHOOL_GROUPS[finalSchool].includes(newName)) SCHOOL_GROUPS[finalSchool].push(newName);
     }
 
-    // Assign to pool or new QF
+    // Build encoded name and assign
+    const encoded = finalSchool ? newName + '@' + finalSchool : newName;
     if (target === '__pool__') {
-      unassigned.push(newName);
+      unassigned.push(encoded);
     } else {
       const [newRn, newQi] = target.split('|');
-      data[newRn].quarterfinals[parseInt(newQi)].groups.push(newName);
+      data[newRn].quarterfinals[parseInt(newQi)].groups.push(encoded);
       rebuildSchools(newRn);
     }
 
@@ -895,7 +906,8 @@ function editGroup(regionName, qfIdx, groupName) {
 
 // Edit a pool group (similar but source is pool)
 function editPoolGroup(groupName) {
-  const school = findSchoolForGroup(groupName);
+  const school = schoolOf(groupName) || findSchoolForGroup(displayName(groupName));
+  const dn = displayName(groupName);
   const coords = school ? SCHOOL_COORDS[school] : null;
   let opts = '<option value="__pool__" selected>— Unassigned Pool —</option>';
   for (const [rn, rd] of Object.entries(data)) {
@@ -905,7 +917,7 @@ function editPoolGroup(groupName) {
   }
   showModal(`Edit Group`, `
     <div class="modal-label">Group Name</div>
-    <input class="modal-input" id="m-group" value="${esc(groupName)}">
+    <input class="modal-input" id="m-group" value="${esc(dn)}">
     <div class="modal-label">School</div>
     <input class="modal-input" id="m-school" value="${esc(school||'')}" list="school-list-edit2">
     <datalist id="school-list-edit2">${Object.keys(SCHOOL_COORDS).sort().map(s=>`<option value="${esc(s)}">`).join('')}</datalist>
@@ -919,31 +931,29 @@ function editPoolGroup(groupName) {
     if (!newName) return;
     saveUndo();
 
-    // Remove from pool
     const idx = unassigned.indexOf(groupName);
     if (idx !== -1) unassigned.splice(idx, 1);
 
-    // Rename
-    if (newName !== groupName) {
-      for (const groups of Object.values(SCHOOL_GROUPS)) {
-        const gi = groups.indexOf(groupName);
-        if (gi !== -1) groups[gi] = newName;
-      }
+    const finalSchool = newSchool || school || '';
+    if (newName !== dn && school) {
+      const gs = SCHOOL_GROUPS[school];
+      if (gs) { const gi = gs.indexOf(dn); if (gi !== -1) gs[gi] = newName; }
     }
-    if (newSchool && newSchool !== school) {
+    if (finalSchool && finalSchool !== school) {
       if (school && SCHOOL_GROUPS[school]) {
-        const gi = SCHOOL_GROUPS[school].indexOf(newName);
+        const gi = SCHOOL_GROUPS[school].indexOf(newName !== dn ? newName : dn);
         if (gi !== -1) SCHOOL_GROUPS[school].splice(gi, 1);
       }
-      if (!SCHOOL_GROUPS[newSchool]) SCHOOL_GROUPS[newSchool] = [];
-      if (!SCHOOL_GROUPS[newSchool].includes(newName)) SCHOOL_GROUPS[newSchool].push(newName);
+      if (!SCHOOL_GROUPS[finalSchool]) SCHOOL_GROUPS[finalSchool] = [];
+      if (!SCHOOL_GROUPS[finalSchool].includes(newName)) SCHOOL_GROUPS[finalSchool].push(newName);
     }
 
+    const encoded = finalSchool ? newName + '@' + finalSchool : newName;
     if (target === '__pool__') {
-      unassigned.push(newName);
+      unassigned.push(encoded);
     } else {
       const [newRn, newQi] = target.split('|');
-      data[newRn].quarterfinals[parseInt(newQi)].groups.push(newName);
+      data[newRn].quarterfinals[parseInt(newQi)].groups.push(encoded);
       rebuildSchools(newRn);
     }
     renderEditor(); renderMap();
@@ -1093,29 +1103,22 @@ function showSchoolModal(school) {
   const allGroups = SCHOOL_GROUPS[school] || [];
 
   function findGroupLocation(groupName) {
-    // For duplicate group names, prefer QFs in regions where this school belongs
-    const candidates = [];
+    // Use canonical index: find QF where this group+school combination lives
     for (const [rn, rd] of Object.entries(data)) {
       for (let i = 0; i < rd.quarterfinals.length; i++) {
-        if (rd.quarterfinals[i].groups.includes(groupName)) {
-          candidates.push({ rn, qi: i });
+        if (rd.quarterfinals[i].groups.some(g => displayName(g) === groupName && schoolOf(g) === school)) {
+          return { rn, qi: i };
         }
       }
     }
-    if (candidates.length === 0) {
-      if (unassigned.includes(groupName)) return { rn: '__pool__', qi: -1 };
-      return null;
+    // Fallback: maybe group was moved and index not yet updated
+    for (const [rn, rd] of Object.entries(data)) {
+      for (let i = 0; i < rd.quarterfinals.length; i++) {
+        if (rd.quarterfinals[i].groups.some(g => displayName(g) === groupName)) return { rn, qi: i };
+      }
     }
-    if (candidates.length === 1) return candidates[0];
-    // Prefer region where this school is listed
-    for (const c of candidates) {
-      if (data[c.rn].schools.includes(school)) return c;
-    }
-    // Prefer region where this school was originally
-    for (const c of candidates) {
-      if (REGIONS[c.rn] && REGIONS[c.rn].schools.includes(school)) return c;
-    }
-    return candidates[0];
+    if (unassigned.some(u => displayName(u) === groupName && (schoolOf(u) === school || !schoolOf(u)))) return { rn: '__pool__', qi: -1 };
+    return null;
   }
 
   let groupRows = '';
@@ -1155,26 +1158,27 @@ function showSchoolModal(school) {
     const selects = document.querySelectorAll('.group-assign-select');
     saveUndo();
     selects.forEach(sel => {
-      const group = sel.dataset.group;
+      const group = sel.dataset.group; // raw group name from SCHOOL_GROUPS
       const target = sel.value;
-      // Remove from everywhere
-      const poolIdx = unassigned.indexOf(group);
+      const encoded = group + '@' + school; // we know the school context
+      // Remove from everywhere (match by encoded or raw name)
+      const poolIdx = unassigned.findIndex(u => displayName(u) === group && (schoolOf(u) === school || !schoolOf(u)));
       if (poolIdx !== -1) unassigned.splice(poolIdx, 1);
       for (const rd of Object.values(data)) {
         for (const qf of rd.quarterfinals) {
-          const gi = qf.groups.indexOf(group);
+          const gi = qf.groups.findIndex(g => displayName(g) === group && (schoolOf(g) === school || !schoolOf(g)));
           if (gi !== -1) qf.groups.splice(gi, 1);
         }
       }
       // Assign
       if (target === '__pool__') {
-        unassigned.push(group);
+        unassigned.push(encoded);
       } else {
         const [rn, qi] = target.split('|');
         if (qi === 'new') {
-          data[rn].quarterfinals.push({date:'',location:'',lat:null,lng:null,groups:[group]});
+          data[rn].quarterfinals.push({date:'',location:'',lat:null,lng:null,groups:[encoded]});
         } else {
-          data[rn].quarterfinals[parseInt(qi)].groups.push(group);
+          data[rn].quarterfinals[parseInt(qi)].groups.push(encoded);
         }
       }
     });
@@ -1190,11 +1194,12 @@ function showQFDetailModal(regionName, qfIdx) {
 
   let groupList = '';
   qf.groups.forEach(g => {
-    const school = findSchoolForGroupInQF(g, regionName, qfIdx);
+    const school = schoolOf(g);
+    const gd = displayName(g);
     groupList += `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04)">
         <div>
-          <span style="font-weight:500" data-group-tip="${esc(g)}" data-group-ctx="${esc(regionName)}|${qfIdx}">${g}</span>
+          <span style="font-weight:500" data-group-tip="${esc(gd)}" data-group-ctx="${esc(regionName)}|${qfIdx}">${gd}</span>
           ${school ? `<span style="font-size:10px;color:#666;margin-left:6px">${school}</span>` : ''}
         </div>
         <button class="region-action-btn del" onclick="event.stopPropagation();removeGroupFromQFModal('${esc(regionName)}',${qfIdx},'${esc(g)}')" title="Unassign to pool">✕</button>
@@ -1300,7 +1305,11 @@ function customConfirm(msg, onYes) {
 
 // ─── EXPORT ───
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const exportData = deepClone(data);
+  for (const rd of Object.values(exportData)) {
+    rd.quarterfinals.forEach(qf => { qf.groups = qf.groups.map(g => displayName(g)); });
+  }
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = 'icca-regions.json'; a.click();
 }
@@ -1315,6 +1324,7 @@ function handleImport(e) {
       if (typeof imported !== 'object' || !Object.keys(imported).length) throw new Error('Invalid format');
       saveUndo();
       data = imported;
+      encodeGroups(data);
       unassigned = [];
       openRegions = {};
       selectedRegionName = null;
@@ -1329,9 +1339,17 @@ function handleImport(e) {
 function resetToDefault() {
   if (!confirm('Reset all changes to the default 2026 data?')) return;
   saveUndo();
+  // Restore all mutable globals
+  for (const k of Object.keys(SCHOOL_GROUPS)) delete SCHOOL_GROUPS[k];
+  Object.assign(SCHOOL_GROUPS, JSON.parse(JSON.stringify(ORIG_SCHOOL_GROUPS)));
+  for (const k of Object.keys(SCHOOL_COORDS)) delete SCHOOL_COORDS[k];
+  Object.assign(SCHOOL_COORDS, JSON.parse(JSON.stringify(ORIG_SCHOOL_COORDS)));
+  for (const k of Object.keys(STATE_REGION)) delete STATE_REGION[k];
+  Object.assign(STATE_REGION, ORIG_STATE_REGION);
   data = deepClone(REGIONS);
+  encodeGroups(data);
   unassigned = [];
-  openRegions = {}; selectedRegionName = null;
+  openRegions = {}; openQFs = {}; selectedRegionName = null; highlightedQF = null;
   const first = Object.keys(data)[0];
   if (first) openRegions[first] = true;
   renderEditor(); renderMap();
@@ -1394,10 +1412,10 @@ function renderEditor() {
           h += `<div class="qf-groups"${vm?'':` ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToQF(event,'${esc(rn)}',${i})"`}>`;
           qf.groups.forEach(g => {
             if (vm) {
-              h += `<span class="group-tag" data-group-tip="${esc(g)}" data-group-ctx="${esc(rn)}|${i}">${g}</span>`;
+              h += `<span class="group-tag" data-group-tip="${esc(displayName(g))}" data-group-ctx="${esc(rn)}|${i}">${displayName(g)}</span>`;
             } else {
-              h += `<span class="group-tag" data-group-tip="${esc(g)}" data-group-ctx="${esc(rn)}|${i}" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
-              h += `${g}<span class="remove-group" onclick="event.stopPropagation();removeGroup('${esc(rn)}',${i},'${esc(g)}')" title="Remove">✕</span></span>`;
+              h += `<span class="group-tag" data-group-tip="${esc(displayName(g))}" data-group-ctx="${esc(rn)}|${i}" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
+              h += `${displayName(g)}<span class="remove-group" onclick="event.stopPropagation();removeGroup('${esc(rn)}',${i},'${esc(g)}')" title="Remove">✕</span></span>`;
             }
           });
           if (!qf.groups.length) h += `<span style="font-size:10px;color:#444;padding:4px">${vm?'Empty':'Drop groups here'}</span>`;
@@ -1416,8 +1434,8 @@ function renderEditor() {
   h += `<div class="qf-groups pool-drop" style="margin:0 10px 10px;border-radius:6px;border-style:dashed" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToPool(event)">`;
   if (unassigned.length) {
     unassigned.forEach(g => {
-      h += `<span class="group-tag" data-group-tip="${esc(g)}" draggable="true" ondragstart="onDragStartPool(event,'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editPoolGroup('${esc(g)}')" title="Click to edit">`;
-      h += `${g}<span class="remove-group" onclick="event.stopPropagation();deletePoolGroup('${esc(g)}')" title="Delete permanently">✕</span></span>`;
+      h += `<span class="group-tag" data-group-tip="${esc(displayName(g))}" draggable="true" ondragstart="onDragStartPool(event,'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editPoolGroup('${esc(g)}')" title="Click to edit">`;
+      h += `${displayName(g)}<span class="remove-group" onclick="event.stopPropagation();deletePoolGroup('${esc(g)}')" title="Delete permanently">✕</span></span>`;
     });
   } else {
     h += `<span style="font-size:10px;color:#444;padding:4px">Drag groups or entire QFs here to unassign</span>`;
@@ -1551,7 +1569,7 @@ function showVenuePopup(screenX, screenY, qf, qfIdx, regionName, regionData) {
       <button class="venue-popup-close" onclick="closeVenuePopup()">✕</button>
     </div>
     <div class="venue-popup-groups">
-      ${qf.groups.map(g => `<span class="venue-popup-group" data-group-tip="${g}" data-group-ctx="${regionName}|${qfIdx}">${g}</span>`).join('')}
+      ${qf.groups.map(g => `<span class="venue-popup-group" data-group-tip="${displayName(g)}" data-group-ctx="${regionName}|${qfIdx}">${displayName(g)}</span>`).join('')}
     </div>`;
 }
 function closeVenuePopup() { document.getElementById('venue-popup').style.display = 'none'; }
@@ -1601,10 +1619,14 @@ function updateMapStats() {
     let school;
     if (ctx) {
       const [rn, qi] = ctx.split('|');
-      school = findSchoolForGroupInQF(groupName, rn, parseInt(qi));
-    } else {
-      school = findSchoolForGroup(groupName);
+      // Find the encoded group in the QF to get school
+      const rd = data[rn], qf = rd && rd.quarterfinals[parseInt(qi)];
+      if (qf) {
+        const match = qf.groups.find(g => displayName(g) === groupName);
+        school = match ? schoolOf(match) : null;
+      }
     }
+    if (!school) school = findSchoolForGroup(groupName);
     gtt.textContent = school || 'Unknown school';
     gtt.classList.add('visible');
     gtt.style.left = (e.clientX + 14) + 'px';
@@ -1784,7 +1806,7 @@ function renderMap() {
   // Unassigned group dots (white) — drawn first so assigned dots are on top
   const unassignedSchools = new Set();
   for (const g2 of unassigned) {
-    const school = findSchoolForGroup(g2);
+    const school = schoolOf(g2) || findSchoolForGroup(displayName(g2));
     if (school) unassignedSchools.add(school);
   }
   for (const school of unassignedSchools) {
@@ -1809,7 +1831,7 @@ function renderMap() {
         const grps = SCHOOL_GROUPS[school];
         const ttg = document.getElementById("tt-groups");
         if (grps && grps.length) {
-          const poolGroups = grps.filter(gg => unassigned.includes(gg));
+          const poolGroups = grps.filter(gg => unassigned.some(u => displayName(u) === gg));
           ttg.innerHTML = poolGroups.map(gg => `<span style="color:#ddd">${gg}</span>`).join(" · ");
           ttg.style.display = poolGroups.length ? "block" : "none";
         } else ttg.style.display="none";
@@ -2066,11 +2088,11 @@ window.resetZoom = () => { currentZoom=null; if (mapSvg&&mapZoom) mapSvg.transit
 
     if (!selected.length) return;
 
-    // Find which groups belong to selected schools
+    // Find which groups belong to selected schools (encode with @school)
     const selectedGroups = [];
     for (const school of selected) {
       const groups = SCHOOL_GROUPS[school];
-      if (groups) selectedGroups.push(...groups);
+      if (groups) selectedGroups.push(...groups.map(g => g + '@' + school));
     }
 
     showModal(`Assign ${selected.length} Schools (${selectedGroups.length} groups)`, `
@@ -2085,15 +2107,18 @@ window.resetZoom = () => { currentZoom=null; if (mapSvg&&mapZoom) mapSvg.transit
       const target = document.getElementById('m-target').value;
       saveUndo();
 
-      // Remove groups from current locations
+      // Remove groups from current locations (match by displayName+school)
       for (const grp of selectedGroups) {
-        const poolIdx = unassigned.indexOf(grp);
+        const dn = displayName(grp), sc = schoolOf(grp);
+        const poolIdx = unassigned.findIndex(u => displayName(u) === dn && schoolOf(u) === sc);
         if (poolIdx !== -1) { unassigned.splice(poolIdx, 1); continue; }
         for (const rd of Object.values(data)) {
+          let found = false;
           for (const qf of rd.quarterfinals) {
-            const gi = qf.groups.indexOf(grp);
-            if (gi !== -1) { qf.groups.splice(gi, 1); break; }
+            const gi = qf.groups.findIndex(g => displayName(g) === dn && schoolOf(g) === sc);
+            if (gi !== -1) { qf.groups.splice(gi, 1); found = true; break; }
           }
+          if (found) break;
         }
       }
 
