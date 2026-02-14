@@ -312,10 +312,12 @@ body {
     <button class="tb-btn" onclick="undoAction()">↩ Undo</button>
     <button class="tb-btn primary" id="view-toggle" onclick="toggleViewMode()">✎ Edit</button>
     <div class="dropdown-wrap">
-      <button class="tb-btn primary" onclick="toggleDropdown()">JSON ▾</button>
+      <button class="tb-btn primary" onclick="toggleDropdown()">Import / Export ▾</button>
       <div class="dropdown-menu" id="json-dropdown">
-        <button onclick="exportJSON();toggleDropdown()">↓ Export JSON</button>
-        <button onclick="importJSON();toggleDropdown()">↑ Import JSON</button>
+        <button onclick="exportJSON();toggleDropdown()">↓ Export Config (JSON)</button>
+        <button onclick="importJSON();toggleDropdown()">↑ Import Config (JSON)</button>
+        <button onclick="exportGroupsCSV();toggleDropdown()">↓ Export Groups (CSV)</button>
+        <button onclick="importGroupsCSV();toggleDropdown()">↑ Import Groups (CSV)</button>
       </div>
     </div>
     <input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
@@ -1338,6 +1340,110 @@ function resetToDefault() {
   openRegions = {}; openQFs = {}; selectedRegionName = null; highlightedQF = null;
   renderEditor(); renderMap();
 }
+function exportGroupsCSV() {
+  const rows = [['Group','School','Region','QF','Location','Date']];
+  for (const [rn, rd] of Object.entries(data)) {
+    rd.quarterfinals.forEach((qf, qi) => {
+      for (const g of qf.groups) {
+        rows.push([displayName(g), schoolOf(g)||'', rn, 'QF'+(qi+1), qf.location||'', qf.date||'']);
+      }
+    });
+  }
+  for (const g of unassigned) {
+    rows.push([displayName(g), schoolOf(g)||'', 'Unassigned', '', '', '']);
+  }
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'icca-groups.csv'; a.click();
+}
+
+function importGroupsCSV() {
+  showModal('Import Groups (CSV)', `
+    <div class="modal-label">Paste CSV</div>
+    <textarea class="modal-input" id="m-groups-csv" rows="8" style="font-family:'Space Mono',monospace;font-size:11px;resize:vertical" placeholder="Group,School,Region,QF,Location,Date
+Midnight Ramblers,University of Rochester,Central,QF3,Rochester NY,Feb 14
+New Ensemble,Stanford University"></textarea>
+    <div style="font-size:10px;color:#666;margin-top:4px">
+      Columns: <code>Group, School, Region, QF, Location, Date</code>. Only Group is required.<br>
+      With Region + QF → placed in that QF. With Region only → first QF in that region. Otherwise → pool.
+    </div>
+  `, () => {
+    const raw = document.getElementById('m-groups-csv').value.trim();
+    if (!raw) return;
+    const lines = raw.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return;
+
+    function parseCSVLine(line) {
+      const fields = [];
+      let cur = '', inQuote = false;
+      for (let c = 0; c < line.length; c++) {
+        const ch = line[c];
+        if (inQuote) {
+          if (ch === '"' && line[c+1] === '"') { cur += '"'; c++; }
+          else if (ch === '"') inQuote = false;
+          else cur += ch;
+        } else {
+          if (ch === '"') inQuote = true;
+          else if (ch === ',') { fields.push(cur.trim()); cur = ''; }
+          else cur += ch;
+        }
+      }
+      fields.push(cur.trim());
+      return fields;
+    }
+
+    // Detect and skip header
+    const firstLower = lines[0].toLowerCase().replace(/[" ]/g,'');
+    const hasHeader = firstLower.startsWith('group') || firstLower.startsWith('name');
+    const start = hasHeader ? 1 : 0;
+
+    saveUndo();
+    let placed = 0, pooled = 0, skipped = 0;
+    for (let i = start; i < lines.length; i++) {
+      const f = parseCSVLine(lines[i]);
+      const name = (f[0] || '').trim();
+      const school = (f[1] || '').trim();
+      const region = (f[2] || '').trim();
+      const qfStr = (f[3] || '').trim();
+      if (!name) { skipped++; continue; }
+
+      // Register school
+      if (school) {
+        if (!SCHOOL_GROUPS[school]) SCHOOL_GROUPS[school] = [];
+        if (!SCHOOL_GROUPS[school].includes(name)) SCHOOL_GROUPS[school].push(name);
+      }
+      const encoded = school ? name + '@' + school : name;
+
+      // Try to place in region/QF
+      if (region && region !== 'Unassigned' && data[region]) {
+        const qfIdx = qfStr ? parseInt(qfStr.replace(/\D/g,'')) - 1 : -1;
+        if (qfIdx >= 0 && data[region].quarterfinals[qfIdx]) {
+          data[region].quarterfinals[qfIdx].groups.push(encoded);
+          placed++;
+        } else if (data[region].quarterfinals.length > 0) {
+          data[region].quarterfinals[0].groups.push(encoded);
+          placed++;
+        } else {
+          unassigned.push(encoded);
+          pooled++;
+        }
+        rebuildSchools(region);
+      } else {
+        unassigned.push(encoded);
+        pooled++;
+      }
+    }
+    renderEditor(); renderMap();
+    let msg = '';
+    if (placed) msg += placed + ' placed in QFs. ';
+    if (pooled) msg += pooled + ' added to pool. ';
+    if (skipped) msg += skipped + ' skipped.';
+    alert(msg.trim() || 'No groups imported.');
+  });
+  setTimeout(() => document.getElementById('m-groups-csv').focus(), 50);
+}
+
 function toggleDropdown() {
   const el = document.getElementById('json-dropdown');
   el.classList.toggle('open');
