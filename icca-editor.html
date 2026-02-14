@@ -280,17 +280,6 @@ body {
 @media (max-width: 900px) {
   .mobile-disclaimer { display: flex; }
 }
-
-/* Mobile disclaimer */
-.mobile-disclaimer {
-  display: none; position: fixed; inset: 0; z-index: 200;
-  background: rgba(10,10,15,0.97); backdrop-filter: blur(20px);
-  flex-direction: column; align-items: center; justify-content: center;
-  text-align: center; padding: 32px;
-}
-@media (max-width: 900px) {
-  .mobile-disclaimer { display: flex; }
-}
 .dropdown-menu {
   display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
   background: #14141a; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
@@ -305,7 +294,7 @@ body {
 .dropdown-menu button:hover { background: rgba(255,255,255,0.06); color: #fff; }
 </style>
 </head>
-<body>
+<body class="view-mode">
 
 <div class="toolbar">
   <div class="toolbar-left">
@@ -321,7 +310,7 @@ body {
     <button class="tb-btn" onclick="addGroup()">+ Group</button>
     <span class="tb-sep"></span>
     <button class="tb-btn" onclick="undoAction()">↩ Undo</button>
-    <button class="tb-btn" id="view-toggle" onclick="toggleViewMode()">👁 View</button>
+    <button class="tb-btn primary" id="view-toggle" onclick="toggleViewMode()">✎ Edit</button>
     <div class="dropdown-wrap">
       <button class="tb-btn primary" onclick="toggleDropdown()">JSON ▾</button>
       <div class="dropdown-menu" id="json-dropdown">
@@ -379,14 +368,6 @@ body {
   <div style="font-size:12px;color:#888;line-height:1.5">The Region Editor uses drag‑and‑drop, lasso selection, and detailed modals that work best on a larger screen.</div>
   <a href="icca-2026-map.html" class="tb-btn" style="margin-top:16px;display:inline-block">← View the 2026 Map instead</a>
   <button class="tb-btn" style="margin-top:8px;display:block;width:100%;color:#555" onclick="document.getElementById('mobile-disclaimer').style.display='none'">Continue anyway</button>
-</div>
-
-<div class="mobile-disclaimer" id="mobile-disclaimer">
-  <div style="font-size:28px;margin-bottom:12px">🖥️</div>
-  <div style="font-size:15px;font-weight:700;margin-bottom:6px">Desktop Recommended</div>
-  <div style="font-size:12px;color:#888;line-height:1.5">The Region Editor uses drag & drop, lasso selection, and multi-panel layouts that work best on a desktop browser.</div>
-  <a href="icca-2026-map.html" class="tb-btn" style="margin-top:16px;display:inline-block">← View 2026 Map instead</a>
-  <button class="tb-btn" style="margin-top:8px" onclick="document.getElementById('mobile-disclaimer').style.display='none'">Continue anyway</button>
 </div>
 
 <script>
@@ -525,7 +506,7 @@ let undoStack = [];
 let openRegions = {};
 let openQFs = {};
 let selectedRegionName = null;
-let viewMode = false;
+let viewMode = true;
 let highlightedQF = null; // QF index for view mode highlighting
 let currentZoom = null;
 
