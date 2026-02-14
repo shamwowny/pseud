@@ -298,7 +298,7 @@ body {
 
 <div class="toolbar">
   <div class="toolbar-left">
-    <a href="icca-2026-map.html" class="tb-btn" style="display:flex;align-items:center;gap:5px">← 2026 Map</a>
+    <button class="tb-btn" onclick="resetToDefault()" style="display:flex;align-items:center;gap:5px">⟲ Reset to 2026</button>
     <div>
       <div class="toolbar-subtitle">ICCA REGION</div>
       <div class="toolbar-title">Assignment Editor</div>
@@ -316,7 +316,6 @@ body {
       <div class="dropdown-menu" id="json-dropdown">
         <button onclick="exportJSON();toggleDropdown()">↓ Export JSON</button>
         <button onclick="importJSON();toggleDropdown()">↑ Import JSON</button>
-        <button onclick="resetToDefault();toggleDropdown()">⟲ Reset to 2026</button>
       </div>
     </div>
     <input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
