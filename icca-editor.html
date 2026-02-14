@@ -2122,8 +2122,6 @@ window.resetZoom = () => { currentZoom=null; if (mapSvg&&mapZoom) mapSvg.transit
 })();
 
 // ─── INIT ───
-const firstR = Object.keys(data)[0];
-if (firstR) openRegions[firstR] = true;
 renderEditor();
 loadMapData();
 window.addEventListener('resize', () => renderMap());
