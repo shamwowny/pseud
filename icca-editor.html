@@ -532,7 +532,7 @@ function getQFSchools(regionName, qfIdx) {
   if (!qf) return null;
   const schools = new Set();
   for (const g of qf.groups) {
-    const s = findSchoolForGroup(g);
+    const s = findSchoolForGroupInQF(g, regionName, qfIdx);
     if (s) schools.add(s);
   }
   return schools;
@@ -545,22 +545,64 @@ function totalStats() {
 
 // Find which school a group belongs to
 function findSchoolForGroup(groupName) {
+  const matches = [];
   for (const [school, groups] of Object.entries(SCHOOL_GROUPS)) {
-    if (groups.includes(groupName)) return school;
+    if (groups.includes(groupName)) matches.push(school);
   }
+  if (matches.length === 1) return matches[0];
+  if (matches.length > 1) return matches[0]; // fallback to first match
   return null;
+}
+
+// Context-aware: find school for a group within a specific QF's school pool
+function findSchoolForGroupInQF(groupName, regionName, qfIdx) {
+  // Get all schools that have a group with this name
+  const candidates = [];
+  for (const [school, groups] of Object.entries(SCHOOL_GROUPS)) {
+    if (groups.includes(groupName)) candidates.push(school);
+  }
+  if (candidates.length <= 1) return candidates[0] || null;
+
+  // Use QF context to disambiguate
+  if (regionName && qfIdx != null && data[regionName] && data[regionName].quarterfinals[qfIdx]) {
+    const qfGroups = data[regionName].quarterfinals[qfIdx].groups;
+
+    // Prefer school with other groups also in this same QF
+    for (const school of candidates) {
+      if (SCHOOL_GROUPS[school].some(g => g !== groupName && qfGroups.includes(g))) return school;
+    }
+
+    // Prefer school that was originally in this region (from REGIONS baseline)
+    const origRegion = REGIONS[regionName];
+    if (origRegion) {
+      for (const school of candidates) {
+        if (origRegion.schools.includes(school)) return school;
+      }
+    }
+
+    // Prefer school whose OTHER groups appear anywhere in this region's QFs
+    const allRegionGroups = new Set();
+    for (const qf of data[regionName].quarterfinals) {
+      for (const g of qf.groups) allRegionGroups.add(g);
+    }
+    for (const school of candidates) {
+      if (SCHOOL_GROUPS[school].some(g => g !== groupName && allRegionGroups.has(g))) return school;
+    }
+  }
+
+  return candidates[0];
 }
 
 // Rebuild schools list from QF group assignments
 function rebuildSchools(regionName) {
   const region = data[regionName];
   const schoolSet = new Set();
-  for (const qf of region.quarterfinals) {
+  region.quarterfinals.forEach((qf, qi) => {
     for (const group of qf.groups) {
-      const school = findSchoolForGroup(group);
+      const school = findSchoolForGroupInQF(group, regionName, qi);
       if (school) schoolSet.add(school);
     }
-  }
+  });
   region.schools = Array.from(schoolSet).sort();
 }
 
@@ -789,7 +831,7 @@ function addGroup() {
 }
 
 function editGroup(regionName, qfIdx, groupName) {
-  const school = findSchoolForGroup(groupName);
+  const school = findSchoolForGroupInQF(groupName, regionName, qfIdx);
   const coords = school ? SCHOOL_COORDS[school] : null;
   let opts = '<option value="__pool__">— Unassigned Pool —</option>';
   for (const [rn, rd] of Object.entries(data)) {
@@ -1051,13 +1093,29 @@ function showSchoolModal(school) {
   const allGroups = SCHOOL_GROUPS[school] || [];
 
   function findGroupLocation(groupName) {
+    // For duplicate group names, prefer QFs in regions where this school belongs
+    const candidates = [];
     for (const [rn, rd] of Object.entries(data)) {
       for (let i = 0; i < rd.quarterfinals.length; i++) {
-        if (rd.quarterfinals[i].groups.includes(groupName)) return { rn, qi: i };
+        if (rd.quarterfinals[i].groups.includes(groupName)) {
+          candidates.push({ rn, qi: i });
+        }
       }
     }
-    if (unassigned.includes(groupName)) return { rn: '__pool__', qi: -1 };
-    return null;
+    if (candidates.length === 0) {
+      if (unassigned.includes(groupName)) return { rn: '__pool__', qi: -1 };
+      return null;
+    }
+    if (candidates.length === 1) return candidates[0];
+    // Prefer region where this school is listed
+    for (const c of candidates) {
+      if (data[c.rn].schools.includes(school)) return c;
+    }
+    // Prefer region where this school was originally
+    for (const c of candidates) {
+      if (REGIONS[c.rn] && REGIONS[c.rn].schools.includes(school)) return c;
+    }
+    return candidates[0];
   }
 
   let groupRows = '';
@@ -1132,11 +1190,11 @@ function showQFDetailModal(regionName, qfIdx) {
 
   let groupList = '';
   qf.groups.forEach(g => {
-    const school = findSchoolForGroup(g);
+    const school = findSchoolForGroupInQF(g, regionName, qfIdx);
     groupList += `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04)">
         <div>
-          <span style="font-weight:500" data-group-tip="${esc(g)}">${g}</span>
+          <span style="font-weight:500" data-group-tip="${esc(g)}" data-group-ctx="${esc(regionName)}|${qfIdx}">${g}</span>
           ${school ? `<span style="font-size:10px;color:#666;margin-left:6px">${school}</span>` : ''}
         </div>
         <button class="region-action-btn del" onclick="event.stopPropagation();removeGroupFromQFModal('${esc(regionName)}',${qfIdx},'${esc(g)}')" title="Unassign to pool">✕</button>
@@ -1336,9 +1394,9 @@ function renderEditor() {
           h += `<div class="qf-groups"${vm?'':` ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDropToQF(event,'${esc(rn)}',${i})"`}>`;
           qf.groups.forEach(g => {
             if (vm) {
-              h += `<span class="group-tag" data-group-tip="${esc(g)}">${g}</span>`;
+              h += `<span class="group-tag" data-group-tip="${esc(g)}" data-group-ctx="${esc(rn)}|${i}">${g}</span>`;
             } else {
-              h += `<span class="group-tag" data-group-tip="${esc(g)}" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
+              h += `<span class="group-tag" data-group-tip="${esc(g)}" data-group-ctx="${esc(rn)}|${i}" draggable="true" ondragstart="onDragStart(event,'${esc(rn)}',${i},'${esc(g)}')" ondragend="onDragEnd(event)" onclick="editGroup('${esc(rn)}',${i},'${esc(g)}')" title="Click to edit">`;
               h += `${g}<span class="remove-group" onclick="event.stopPropagation();removeGroup('${esc(rn)}',${i},'${esc(g)}')" title="Remove">✕</span></span>`;
             }
           });
@@ -1493,7 +1551,7 @@ function showVenuePopup(screenX, screenY, qf, qfIdx, regionName, regionData) {
       <button class="venue-popup-close" onclick="closeVenuePopup()">✕</button>
     </div>
     <div class="venue-popup-groups">
-      ${qf.groups.map(g => `<span class="venue-popup-group" data-group-tip="${g}">${g}</span>`).join('')}
+      ${qf.groups.map(g => `<span class="venue-popup-group" data-group-tip="${g}" data-group-ctx="${regionName}|${qfIdx}">${g}</span>`).join('')}
     </div>`;
 }
 function closeVenuePopup() { document.getElementById('venue-popup').style.display = 'none'; }
@@ -1539,7 +1597,14 @@ function updateMapStats() {
     if (!el) { if (activeEl) { gtt.classList.remove('visible'); activeEl = null; } return; }
     activeEl = el;
     const groupName = el.getAttribute('data-group-tip');
-    const school = findSchoolForGroup(groupName);
+    const ctx = el.getAttribute('data-group-ctx');
+    let school;
+    if (ctx) {
+      const [rn, qi] = ctx.split('|');
+      school = findSchoolForGroupInQF(groupName, rn, parseInt(qi));
+    } else {
+      school = findSchoolForGroup(groupName);
+    }
     gtt.textContent = school || 'Unknown school';
     gtt.classList.add('visible');
     gtt.style.left = (e.clientX + 14) + 'px';
