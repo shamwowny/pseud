@@ -246,6 +246,10 @@ body {
 .venue-popup-close:hover { color: #fff; }
 .venue-popup-groups { display: flex; flex-wrap: wrap; gap: 4px; }
 .venue-popup-group { font-size: 11px; padding: 3px 10px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
+.venue-popup-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.venue-popup-tab { font-size: 11px; padding: 4px 12px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #888; cursor: pointer; transition: all 0.15s; }
+.venue-popup-tab:hover { background: rgba(255,255,255,0.1); color: #ccc; }
+.venue-popup-tab.active { background: var(--tab-color, rgba(255,255,255,0.15)); border-color: var(--tab-color, rgba(255,255,255,0.3)); color: #fff; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Map stats bar */
@@ -1636,7 +1640,9 @@ function applyZoomSpread(g, k) {
 }
 
 // ─── VENUE POPUP ───
-function showVenuePopup(screenX, screenY, qf, qfIdx, regionName, regionData) {
+function showVenuePopup(screenX, screenY, qfEntries, activeIdx) {
+  // qfEntries: [{qf, qfIdx, regionName, regionData}, ...]
+  // activeIdx: index into qfEntries for which tab is active
   const popup = document.getElementById('venue-popup');
   const mapArea = document.querySelector('.map-area');
   const rect = mapArea.getBoundingClientRect();
@@ -1649,18 +1655,49 @@ function showVenuePopup(screenX, screenY, qf, qfIdx, regionName, regionData) {
   popup.style.display = 'block';
   popup.style.left = left + 'px';
   popup.style.top = top + 'px';
+  popup._qfEntries = qfEntries;
+  popup._screenX = screenX;
+  popup._screenY = screenY;
+
+  const active = qfEntries[activeIdx];
+  const {qf, qfIdx, regionName, regionData} = active;
+
+  let tabsHtml = '';
+  if (qfEntries.length > 1) {
+    tabsHtml = '<div class="venue-popup-tabs">' + qfEntries.map((e, ti) => {
+      const c = e.regionData.accent || e.regionData.color;
+      const cls = ti === activeIdx ? 'venue-popup-tab active' : 'venue-popup-tab';
+      return `<button class="${cls}" style="--tab-color:${c}" onclick="switchVenueTab(${ti})">QF${e.qfIdx+1} · ${e.qf.date||''}</button>`;
+    }).join('') + '</div>';
+  }
+
   popup.innerHTML = `
     <div style="width:32px;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 10px;"></div>
     <div class="venue-popup-header">
       <div>
-        <div class="venue-popup-title" style="color:${regionData.accent||regionData.color}">QF ${qfIdx+1} — ${qf.location||'No location'}</div>
+        <div class="venue-popup-title" style="color:${regionData.accent||regionData.color}">QF${qfIdx+1} — ${qf.location||'No location'}</div>
         <div class="venue-popup-meta">${qf.date||''} · ${regionName} · ${qf.groups.length} groups</div>
       </div>
       <button class="venue-popup-close" onclick="closeVenuePopup()">✕</button>
     </div>
+    ${tabsHtml}
     <div class="venue-popup-groups">
       ${qf.groups.map(g => `<span class="venue-popup-group" data-group-tip="${displayName(g)}" data-group-ctx="${regionName}|${qfIdx}">${displayName(g)}</span>`).join('')}
     </div>`;
+}
+function switchVenueTab(tabIdx) {
+  const popup = document.getElementById('venue-popup');
+  const entries = popup._qfEntries;
+  if (!entries || !entries[tabIdx]) return;
+  const entry = entries[tabIdx];
+  // Update highlighting
+  highlightedQF = entry.qfIdx;
+  selectedRegionName = entry.regionName;
+  showVenuePopup(popup._screenX, popup._screenY, entries, tabIdx);
+  renderMap();
+  // Re-show popup after renderMap (which may clear it visually)
+  const p = document.getElementById('venue-popup');
+  p.style.display = 'block';
 }
 function closeVenuePopup() { document.getElementById('venue-popup').style.display = 'none'; }
 
@@ -2011,12 +2048,25 @@ function renderMap() {
       }
     }
 
+    // Group QFs by location for co-located venues
+    const venueGroups = {};
     rd.quarterfinals.forEach((qf, i) => {
       if (!qf.lat) return;
-      const p = projection([qf.lng, qf.lat]);
-      if (!p) return;
-      const isHL = viewMode && highlightedQF === i;
-      const qg = vg.append("g").attr("class","venue-marker-g").attr("data-tx",p[0]).attr("data-ty",p[1]).attr("transform",`translate(${p[0]},${p[1]})`);
+      const key = qf.lat + ',' + qf.lng;
+      if (!venueGroups[key]) venueGroups[key] = [];
+      venueGroups[key].push({qf, idx: i});
+    });
+
+    for (const [key, vqfs] of Object.entries(venueGroups)) {
+      const first = vqfs[0];
+      const p = projection([first.qf.lng, first.qf.lat]);
+      if (!p) continue;
+      const hlEntry = vqfs.find(v => viewMode && highlightedQF === v.idx);
+      const isHL = !!hlEntry;
+      const displayIdx = hlEntry ? hlEntry.idx : first.idx;
+      const qg = vg.append("g").attr("class","venue-marker-g")
+        .attr("data-tx",p[0]).attr("data-ty",p[1])
+        .attr("transform",`translate(${p[0]},${p[1]})`);
       const s = 7;
       const glowR = isHL ? 18 : 14;
       qg.append("circle").attr("r",glowR)
@@ -2027,12 +2077,21 @@ function renderMap() {
         .attr("class","venue-marker").attr("data-base-sw",isHL?2.5:1.5).style("pointer-events","none");
       qg.append("text").attr("x",0).attr("y",0).attr("dy","0.35em").attr("text-anchor","middle")
         .attr("fill","#fff").attr("font-size","8px").attr("font-weight","700").attr("font-family","'Space Mono',monospace")
-        .attr("pointer-events","none").text(i+1);
-      // Click catcher - slightly larger than diamond for easy clicking
+        .attr("pointer-events","none").text(displayIdx+1);
+      // "+" pip for co-located venues
+      if (vqfs.length > 1) {
+        qg.append("text").attr("x",s-2).attr("y",-s+2).attr("text-anchor","start")
+          .attr("fill","#fff").attr("font-size","10px").attr("font-weight","900").attr("font-family","'Space Mono',monospace")
+          .attr("pointer-events","none").attr("opacity",0.85).text("+");
+      }
+      // Click catcher
       const cc = qg.append("circle").attr("r",9).attr("fill","transparent").style("cursor","pointer");
       cc.on("mouseenter", function(e) {
-        ttSchool.textContent = `QF ${i+1} — ${qf.location||'No location'}`;
-        ttRegion.textContent = `${qf.date||''} · ${qf.groups.length} groups${viewMode?' · click to highlight':''}`;
+        ttSchool.textContent = first.qf.location||'No location';
+        const hoverMeta = vqfs.length > 1
+          ? vqfs.map(v => `QF${v.idx+1} (${v.qf.date||''})`).join(' + ')
+          : `QF ${first.idx+1} · ${first.qf.date||''} · ${first.qf.groups.length} groups`;
+        ttRegion.textContent = hoverMeta + (viewMode?' · click to highlight':'');
         ttRegion.style.color = rd.accent||rd.color;
         document.getElementById("tt-groups").style.display = "none";
         tooltip.classList.add("visible");
@@ -2044,22 +2103,35 @@ function renderMap() {
       }).on("mouseleave", function() {
         tooltip.classList.remove("visible");
       });
-      cc.on("click", ((rn, idx) => (e) => {
+      cc.on("click", ((rn, venueQFs) => (e) => {
         tooltip.classList.remove("visible");
+        const entries = venueQFs.map(v => ({
+          qf: data[rn].quarterfinals[v.idx], qfIdx: v.idx, regionName: rn, regionData: data[rn]
+        }));
         if (viewMode) {
-          highlightedQF = highlightedQF === idx ? null : idx;
-          if (highlightedQF !== null) {
-            const qfData = data[rn].quarterfinals[idx];
-            showVenuePopup(e.clientX, e.clientY, qfData, idx, rn, data[rn]);
+          if (venueQFs.length === 1) {
+            highlightedQF = highlightedQF === venueQFs[0].idx ? null : venueQFs[0].idx;
+            if (highlightedQF !== null) {
+              showVenuePopup(e.clientX, e.clientY, entries, 0);
+            } else { closeVenuePopup(); }
           } else {
-            closeVenuePopup();
+            // Find currently highlighted tab, default to first
+            const curTab = venueQFs.findIndex(v => highlightedQF === v.idx);
+            const tab = curTab >= 0 ? curTab : 0;
+            highlightedQF = venueQFs[tab].idx;
+            showVenuePopup(e.clientX, e.clientY, entries, tab);
           }
           renderMap();
+          document.getElementById('venue-popup').style.display = document.getElementById('venue-popup')._qfEntries ? 'block' : 'none';
         } else {
-          showQFDetailModal(rn, idx);
+          if (venueQFs.length === 1) {
+            showQFDetailModal(rn, venueQFs[0].idx);
+          } else {
+            showVenuePopup(e.clientX, e.clientY, entries, 0);
+          }
         }
-      })(selectedRegionName, i));
-    });
+      })(selectedRegionName, vqfs));
+    }
   }
 
   // Post-render zoom
