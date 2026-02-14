@@ -785,12 +785,7 @@ function deleteQF(rn, idx) {
 
 // ─── GROUP OPS ───
 function addGroup() {
-  let opts = '<option value="__pool__">— Unassigned Pool —</option>';
-  for (const [rn, rd] of Object.entries(data)) {
-    rd.quarterfinals.forEach((qf, i) => {
-      opts += `<option value="${esc(rn)}|${i}">QF${i+1} — ${qf.location||'(no location)'} (${rn})</option>`;
-    });
-  }
+  const opts = buildAssignSelect('__pool__');
   const schoolNames = Object.keys(SCHOOL_COORDS).sort();
   const datalist = schoolNames.map(s => `<option value="${esc(s)}">`).join('');
 
@@ -846,13 +841,7 @@ function editGroup(regionName, qfIdx, groupName) {
   const school = schoolOf(groupName) || findSchoolForGroup(displayName(groupName));
   const dn = displayName(groupName);
   const coords = school ? SCHOOL_COORDS[school] : null;
-  let opts = '<option value="__pool__">— Unassigned Pool —</option>';
-  for (const [rn, rd] of Object.entries(data)) {
-    rd.quarterfinals.forEach((qf, i) => {
-      const sel = (rn === regionName && i === qfIdx) ? ' selected' : '';
-      opts += `<option value="${esc(rn)}|${i}"${sel}>QF${i+1} — ${qf.location||'(no location)'} (${rn})</option>`;
-    });
-  }
+  const opts = buildAssignSelect(regionName + '|' + qfIdx);
   showModal(`Edit Group`, `
     <div class="modal-label">Group Name</div>
     <input class="modal-input" id="m-group" value="${esc(dn)}">
@@ -909,12 +898,7 @@ function editPoolGroup(groupName) {
   const school = schoolOf(groupName) || findSchoolForGroup(displayName(groupName));
   const dn = displayName(groupName);
   const coords = school ? SCHOOL_COORDS[school] : null;
-  let opts = '<option value="__pool__" selected>— Unassigned Pool —</option>';
-  for (const [rn, rd] of Object.entries(data)) {
-    rd.quarterfinals.forEach((qf, i) => {
-      opts += `<option value="${esc(rn)}|${i}">QF${i+1} — ${qf.location||'(no location)'} (${rn})</option>`;
-    });
-  }
+  const opts = buildAssignSelect('__pool__');
   showModal(`Edit Group`, `
     <div class="modal-label">Group Name</div>
     <input class="modal-input" id="m-group" value="${esc(dn)}">
@@ -1328,8 +1312,6 @@ function handleImport(e) {
       unassigned = [];
       openRegions = {};
       selectedRegionName = null;
-      const first = Object.keys(data)[0];
-      if (first) openRegions[first] = true;
       renderEditor(); renderMap();
     } catch(err) { alert('Import failed: ' + err.message); }
   };
@@ -1350,8 +1332,6 @@ function resetToDefault() {
   encodeGroups(data);
   unassigned = [];
   openRegions = {}; openQFs = {}; selectedRegionName = null; highlightedQF = null;
-  const first = Object.keys(data)[0];
-  if (first) openRegions[first] = true;
   renderEditor(); renderMap();
 }
 function toggleDropdown() {
