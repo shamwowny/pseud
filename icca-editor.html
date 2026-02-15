@@ -381,6 +381,8 @@ body {
         <button onclick="importJSON();toggleDropdown()">↑ Import Config (JSON)</button>
         <button onclick="exportGroupsCSV();toggleDropdown()">↓ Export Groups (CSV)</button>
         <button onclick="importGroupsCSV();toggleDropdown()">↑ Import Groups (CSV)</button>
+        <div style="height:1px;background:rgba(255,255,255,0.08);margin:4px 0"></div>
+        <button onclick="exportImage();toggleDropdown()">📷 Export Image (PNG)</button>
       </div>
     </div>
     <input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
@@ -1549,6 +1551,224 @@ function exportJSON() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = 'icca-regions.json'; a.click();
 }
+
+function exportImage() {
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx.roundRect) {
+    ctx.roundRect = function(x, y, w, h, r) {
+      if (typeof r === 'number') r = [r,r,r,r];
+      r = r.map(v => Math.min(v, w/2, h/2));
+      this.moveTo(x+r[0], y);
+      this.arcTo(x+w, y, x+w, y+h, r[1]);
+      this.arcTo(x+w, y+h, x, y+h, r[2]);
+      this.arcTo(x, y+h, x, y, r[3]);
+      this.arcTo(x, y, x+w, y, r[0]);
+    };
+  }
+
+  // Fixed layout
+  const headerH = 100;
+  const mapH = 750;
+  const regionCount = Object.keys(data).length || 1;
+  const regionZoneTop = headerH + mapH;
+  const regionZoneH = H - regionZoneTop;
+  const cardGap = 4;
+  const cardPad = 20;
+  const regionCardH = Math.floor((regionZoneH - cardPad * 2 - cardGap * (regionCount - 1)) / regionCount);
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0d0d1a');
+  grad.addColorStop(0.35, '#161628');
+  grad.addColorStop(1, '#0d0d1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // --- Render map directly onto canvas using d3 projection ---
+  const mapPad = -110;
+  const mapW = W + 220;
+  const mapInnerH = mapH + 220;
+  const proj = d3.geoAlbersUsa().fitSize([mapW, mapInnerH], {type: "Sphere"});
+  proj.translate([W / 2, headerH + mapH / 2]);
+  const path = d3.geoPath().projection(proj);
+
+  // Draw states
+  if (usTopoData) {
+    const states = topojson.feature(usTopoData, usTopoData.objects.states);
+    for (const feat of states.features) {
+      const sn = feat.properties.name;
+      const rn = STATE_REGION[sn];
+      const rd = rn ? data[rn] : null;
+
+      // State fill
+      ctx.beginPath();
+      const p2d = new Path2D(path(feat));
+      if (rd) {
+        ctx.fillStyle = rd.color + '18';
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,0.02)';
+      }
+      ctx.fill(p2d);
+
+      // State stroke
+      if (rd) {
+        ctx.strokeStyle = rd.color + '50';
+        ctx.lineWidth = 1;
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 0.5;
+      }
+      ctx.stroke(p2d);
+    }
+  }
+
+  // Draw group dots
+  for (const [rn, rd] of Object.entries(data)) {
+    const color = rd.color || '#888';
+    for (const sc of (rd.schools || [])) {
+      const coords = SCHOOL_COORDS[sc];
+      if (!coords) continue;
+      const pt = proj([coords[1], coords[0]]);
+      if (!pt) continue;
+      ctx.beginPath();
+      ctx.arc(pt[0], pt[1], 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+  }
+
+  // Draw QF diamonds
+  for (const [rn, rd] of Object.entries(data)) {
+    const color = rd.color || '#888';
+    for (const qf of rd.quarterfinals) {
+      if (!qf.location) continue;
+      const loc = SCHOOL_COORDS[qf.location];
+      if (!loc) continue;
+      const pt = proj([loc[1], loc[0]]);
+      if (!pt) continue;
+      ctx.save();
+      ctx.translate(pt[0], pt[1]);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = color + '60';
+      ctx.fillRect(-4, -4, 8, 8);
+      ctx.restore();
+    }
+  }
+
+  // Draw SF stars
+  for (const [rn, rd] of Object.entries(data)) {
+    if (!rd.semifinal || !rd.semifinal.location) continue;
+    const color = rd.color || '#888';
+    const loc = SCHOOL_COORDS[rd.semifinal.location];
+    if (!loc) continue;
+    const pt = proj([loc[1], loc[0]]);
+    if (!pt) continue;
+    // Simple star shape
+    ctx.beginPath();
+    for (let s = 0; s < 5; s++) {
+      const angle = -Math.PI / 2 + s * Math.PI * 2 / 5;
+      const r = 6;
+      ctx.lineTo(pt[0] + Math.cos(angle) * r, pt[1] + Math.sin(angle) * r);
+      const angle2 = angle + Math.PI / 5;
+      ctx.lineTo(pt[0] + Math.cos(angle2) * r * 0.4, pt[1] + Math.sin(angle2) * r * 0.4);
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  // Edge fades on map zone
+  let f1 = ctx.createLinearGradient(0, headerH, 0, headerH + 40);
+  f1.addColorStop(0, 'rgba(13,13,26,0.8)'); f1.addColorStop(1, 'rgba(13,13,26,0)');
+  ctx.fillStyle = f1; ctx.fillRect(0, headerH, W, 40);
+  let f2 = ctx.createLinearGradient(0, headerH + mapH - 40, 0, headerH + mapH);
+  f2.addColorStop(0, 'rgba(13,13,26,0)'); f2.addColorStop(1, 'rgba(13,13,26,0.8)');
+  ctx.fillStyle = f2; ctx.fillRect(0, headerH + mapH - 40, W, 40);
+
+  // --- Header ---
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('My ICCA Regions', W / 2, 52);
+  ctx.fillStyle = '#777';
+  ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+  const totalR = Object.keys(data).length;
+  const totalG = Object.entries(data).reduce((s, [rn, rd]) => s + countGroups(rd) + (regionGroups[rn] || []).length, 0);
+  const totalS = new Set(Object.values(data).flatMap(rd => rd.schools || [])).size;
+  ctx.fillText(totalR + ' Regions \u00b7 ' + totalG + ' Groups \u00b7 ' + totalS + ' Schools', W / 2, 82);
+
+  // --- Region cards ---
+  ctx.textAlign = 'left';
+  const regionEntries = Object.entries(data).sort((a, b) => {
+    const ga = countGroups(a[1]) + (regionGroups[a[0]] || []).length;
+    const gb = countGroups(b[1]) + (regionGroups[b[0]] || []).length;
+    return gb - ga;
+  });
+
+  const cardX = cardPad;
+  const cardW = W - cardPad * 2;
+
+  for (let i = 0; i < regionEntries.length; i++) {
+    const [rn, rd] = regionEntries[i];
+    const cy = regionZoneTop + cardPad + i * (regionCardH + cardGap);
+    const gc = countGroups(rd) + (regionGroups[rn] || []).length;
+    const sc = (rd.schools || []).length;
+    const qc = rd.quarterfinals.length;
+
+    // Card bg
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    ctx.beginPath(); ctx.roundRect(cardX, cy, cardW, regionCardH, 8); ctx.fill();
+
+    // Color accent
+    ctx.fillStyle = rd.color || '#555';
+    const accPad = Math.max(6, regionCardH * 0.15);
+    ctx.fillRect(cardX, cy + accPad, 4, regionCardH - accPad * 2);
+
+    // Text
+    const mid = cy + regionCardH / 2;
+    const nameSize = Math.min(20, Math.max(14, regionCardH * 0.35));
+    const statSize = Math.min(13, Math.max(10, regionCardH * 0.22));
+
+    ctx.fillStyle = '#eee';
+    ctx.font = 'bold ' + Math.round(nameSize) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(rn, cardX + 18, mid + (regionCardH > 60 ? -4 : 1));
+
+    if (regionCardH > 45) {
+      ctx.fillStyle = '#777';
+      ctx.font = Math.round(statSize) + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText(sc + ' schools \u00b7 ' + gc + ' groups \u00b7 ' + qc + ' QFs', cardX + 18, mid + nameSize * 0.75);
+    }
+
+    // Pill
+    const pillW = 46, pillH = Math.min(24, regionCardH * 0.45);
+    const pillX = cardX + cardW - pillW - 12, pillY = mid - pillH / 2;
+    ctx.fillStyle = rd.color + '30';
+    ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2); ctx.fill();
+    ctx.fillStyle = rd.color;
+    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(gc + 'g', pillX + pillW / 2, pillY + pillH / 2 + 5);
+    ctx.textAlign = 'left';
+  }
+
+  // Download
+  const now = new Date();
+  canvas.toBlob(function(blob) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'icca-regions-' + now.toISOString().slice(0, 10) + '.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, 'image/png');
+}
+
+
+
+
 function importJSON() { document.getElementById('file-import').click(); }
 function handleImport(e) {
   const file = e.target.files[0];
