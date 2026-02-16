@@ -4810,8 +4810,8 @@ function getQFDropTarget(clientX, clientY) {
 
     const groups = [];
     for (const school of selected) {
-      const gs = SCHOOL_GROUPS[school];
-      if (gs) groups.push(...gs.map(g => g + '@' + school));
+      const gs = activeGroupsForSchool(school);
+      if (gs.length) groups.push(...gs.map(g => g + '@' + school));
     }
     lassoSelection = { schools: new Set(selected), groups: groups };
     updateSelectionBar();
@@ -4886,8 +4886,8 @@ function toggleSchoolInSelection(school) {
     lassoSelection.groups = lassoSelection.groups.filter(g => schoolOf(g) !== school);
   } else {
     lassoSelection.schools.add(school);
-    const gs = SCHOOL_GROUPS[school];
-    if (gs) lassoSelection.groups.push(...gs.map(g => g + '@' + school));
+    const gs = activeGroupsForSchool(school);
+    if (gs.length) lassoSelection.groups.push(...gs.map(g => g + '@' + school));
   }
   updateSelectionBar();
   renderMap();
